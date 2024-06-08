@@ -1,16 +1,33 @@
-cmake_minimum_required(VERSION 3.5)
+# specify minimum cmake version
+cmake_minimum_required(VERSION 3.7)
+# set project name and options
+project(ManySnakes
+	VERSION 0.0.1.0
+	DESCRIPTION "\"ManySnakes by Danielle Raine.\""
+	HOMEPAGE_URL "\"https://github.com/DanielleRaine/ManySnakes\""
+	LANGUAGES C
+)
 
-project(ManySnakes VERSION 0.0.1)
-
+# specify c standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules/ ${CMAKE_MODULE_PATH})
+# find SDL2
+find_package(SDL2 REQUIRED)
+# include SDL2
+include_directories(ManySnakes ${SDL2_INCLUDE_DIRS})
 
-find_package(SDL REQUIRED)
+# configure project config file
+configure_file(config.h.in config.h)
 
-include_directories(${SDL2_INCLUDE_DIR})
-target_link_libraries(ManySnakes ${SDL2_LIBRARY})
+# add executable called ManySnakes build from source files
+add_executable(ManySnakes main.c config.h.in)
 
-add_executable(ManySnakes main.c)
+# specify where exxecutable target should look for include files
+target_include_directories(ManySnakes PUBLIC
+	"${PROJECT_BINARY_DIR}"
+)
+
+# link libraries
+target_link_libraries(ManySnakes ${SDL2_LIBRARIES})
 
