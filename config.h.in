@@ -2,6 +2,6 @@
 #define ManySnakes_VERSION_MAJOR @ManySnakes_VERSION_MAJOR@
 #define ManySnakes_VERSION_MINOR @ManySnakes_VERSION_MINOR@
 #define ManySnakes_VERSION_PATCH @ManySnakes_VERSION_PATCH@
-#define ManySnakes_VERSION_TWEAK @ManySnakes_VERSION_TWEAK@
+#define ManySnakes_VERSION_PHASE @ManySnakes_VERSION_TWEAK@
 #define ManySnakes_DESCRIPTION @ManySnakes_DESCRIPTION@
 #define ManySnakes_HOMEPAGE_URL @ManySnakes_HOMEPAGE_URL@
