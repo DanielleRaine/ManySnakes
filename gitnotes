@@ -1,10 +1,16 @@
 git branch | shows local branches
-git branch "branch" | creates branch "branch"
-git branch -d "branch" | deletes a branch
+git branch <branch> | creates branch "branch"
+git branch -d <branch> | deletes a branch
 git branch -a | shows local and fetched branches
-git checkout "branch"
-git diff "branch1" "branch2"
+git checkout <branch>
+git diff <branch1> <branch2>
 git log | shows history
-git blame "filename" | show changes made by users
-git merge "branch" | merge commits on "branch" to current branch
-git merge --squash "branch" | merge commits on "branch" to current branch and squash all commits into one commit
+git blame <filename> | show changes made by users
+git merge <branch> | merge commits on "branch" to current branch
+git merge --squash <branch> | merge commits on "branch" to current branch and squash all commits into one commit
+git tag <tagname> | creates a lightweight tag
+git tag -a <tagname> | creates an annotated tag, opens editor to type message
+git tag -a <tagname> -m <message> | creates annotated tag with message
+git tag -a  <tagname> <commit checksum> | tag previous commit
+git push origin --tags | pushes all tags to remote
+git push origin <tagname> | pushes a tag to remote
