@@ -1,0 +1,10 @@
+git branch | shows local branches
+git branch "branch" | creates branch "branch"
+git branch -d "branch" | deletes a branch
+git branch -a | shows local and fetched branches
+git checkout "branch"
+git diff "branch1" "branch2"
+git log | shows history
+git blame "filename" | show changes made by users
+git merge "branch" | merge commits on "branch" to current branch
+git merge --squash "branch" | merge commits on "branch" to current branch and squash all commits into one commit
