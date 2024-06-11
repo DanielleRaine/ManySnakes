@@ -7,10 +7,15 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
+//#include <SDL2/SDL_timer.h>
 
 
 int main(void)
 {
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Print the game's description, Github URL, and version numbers of the game, C, and SDL.
+	 */
+
 	// print game description, github url
 	SDL_Log("%s\n", ManySnakes_DESCRIPTION);
 	SDL_Log("Homepage Url %s\n", ManySnakes_HOMEPAGE_URL);
@@ -52,36 +57,50 @@ int main(void)
 	SDL_Log("Linking against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
 
 
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Initialize SDL and register SDL_Quit at exit.
+	 */
+
 	// initialize sdl. if error, return 
-	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0)
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
 		return 1;
 	}
+
 	// register sdl shutdown on program closure
 	atexit(SDL_Quit);
 
 
-	// diagonal, horizontal, vertical dpi
-	float ddpi, hdpi, vdpi;
-	// get display dpi at display 0
-	SDL_GetDisplayDPI(1, &ddpi, &hdpi, &vdpi);
-	SDL_Log("%f %f %f", ddpi, hdpi, vdpi);
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Get display and window bounds, create a window and renderer.
+	 */
+
+	// display size struct
+	SDL_Rect displayBounds;
+	// get display bounds. if error, return
+	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		return 1;
+	}
+
+	// window dimensions
+	const int WINDOW_WIDTH = displayBounds.w * 2 / 3;
+	const int WINDOW_HEIGHT = displayBounds.h * 2 / 3;
 
 	// create window
-	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1000, 1000, SDL_WINDOW_RESIZABLE);
+	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
 	// if window doesn't exist, print error and return
 	if (!window)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
 		return 1;
 	}
-	// window options
-	SDL_SetWindowResizable(window, SDL_FALSE);
 
 	// create renderer
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
-	// if rendere dne, print error, destroy window and return
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	// if render doesn't exist, print error, destroy window and return
 	if (!renderer)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
@@ -90,12 +109,19 @@ int main(void)
 	}
 
 
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Main loop, poll for events!
+	 */
+	
+	srand(SDL_GetTicks());
+	SDL_RenderClear(renderer);
+
 	SDL_Event event;
 	bool isRunning = true;
 	// main loop	
 	while (isRunning)
 	{
-		// poll until all events handled
+		// poll events
 		while(SDL_PollEvent(&event))
 		{
 			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
@@ -110,25 +136,26 @@ int main(void)
 
 				if (event.key.keysym.sym == SDLK_f) // key f
 				{
-					SDL_Log("Hewwo!!");
-
-					SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // red
-					SDL_RenderDrawPoint(renderer, 0, 0);
-
-					// change color to white
-					SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-					SDL_RenderDrawLine(renderer, 1, 1, 990, 990);
-					
-					SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // red
-					SDL_RenderDrawPoint(renderer, 999, 999);
-					
-					SDL_RenderPresent(renderer);
+					// draw a random box on a snake space
+					SDL_Rect drawRect = {rand() % 40 * WINDOW_WIDTH / 40, rand() % 30 * WINDOW_HEIGHT / 30, WINDOW_WIDTH / 40, WINDOW_HEIGHT / 30};
+					SDL_Log("Rect at %d, %d with %d, %d.", drawRect.x, drawRect.y, drawRect.w, drawRect.h);
+					if (SDL_SetRenderDrawColor(renderer, rand() % 256, rand() % 256, rand() % 256, 255) || SDL_RenderFillRect(renderer, &drawRect))
+					{
+						SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+						SDL_DestroyRenderer(renderer);
+						SDL_DestroyWindow(window);
+						return 1;
+					}
 				}
 			}
+
 		}
-
+		
 		// update game state, draw current frame
-
+		SDL_RenderPresent(renderer);
+		
+		// delay 0.1 seconds.
+		SDL_Delay(100);
 	} // main loop end
 
 
