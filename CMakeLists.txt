@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.7)
 # set project name and options
 project(ManySnakes
-	VERSION 0.0.4.2
+	VERSION 0.0.5.2
 	DESCRIPTION "\"ManySnakes by Danielle Raine.\""
 	HOMEPAGE_URL "\"https://github.com/DanielleRaine/ManySnakes\""
 	LANGUAGES C
@@ -11,6 +11,15 @@ project(ManySnakes
 # specify c standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
+
+#set warnings
+if (MSVC)
+    # warning level 4
+    add_compile_options(/W4)
+else()
+    # additional warnings
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
 # find SDL2
 find_package(SDL2 REQUIRED)
