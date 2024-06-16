@@ -7,17 +7,31 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
-//#include <SDL2/SDL_timer.h>
+#include <SDL2/SDL_image.h>
 
 
 int main(void)
 {
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Declare snake, snake body structs.
+	 */	
+
 	typedef struct SnakeNode
 	{
 		struct SnakeNode *next;
 		int xPos;
 		int yPos;
 	} SnakeNode;
+
+	typedef struct Snake
+	{
+		struct SnakeNode *head;
+		char direction;
+		char pendingDirection;
+		char name[];
+	} Snake;
+
+//	typedef struct 
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -66,7 +80,7 @@ int main(void)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Initialize SDL and register SDL_Quit at exit.
+	 * Initialize SDL, IMG and register SDL_Quit, IMG_QUIT at exit.
 	 */
 
 	// initialize sdl. if error, return 
@@ -78,6 +92,12 @@ int main(void)
 
 	// register sdl shutdown on program closure
 	atexit(SDL_Quit);
+
+	// initialize img
+	IMG_Init(IMG_INIT_PNG);
+
+	// register img shutdown on program closure
+	atexit(IMG_Quit);
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,38 +136,44 @@ int main(void)
 		return 1;
 	}
 
+
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Create the player's snake and seed rand.
 	 */
 
-	SnakeNode *playerHead = malloc(sizeof(SnakeNode));
-	playerHead->next = NULL;
-	playerHead->xPos = WINDOW_WIDTH / 2;
-	playerHead->yPos = WINDOW_HEIGHT / 2;
+	Snake *player = malloc(sizeof(Snake));
+	player->head = malloc(sizeof(SnakeNode));
+	player->head->next = NULL;
+	player->head->xPos = WINDOW_WIDTH / 2;
+	player->head->yPos = WINDOW_HEIGHT / 2;
 
-	SnakeNode *playerCurNode = playerHead;
+	SnakeNode *curPlayerNode = player->head;
 
 	for (int i = 0; i < 2; i++)
 	{
-		int xPosNext = playerCurNode->xPos;
-		int yPosNext = playerCurNode->yPos + 24;
+		int xPosNext = curPlayerNode->xPos;
+		int yPosNext = curPlayerNode->yPos + 24;
 
-		playerCurNode->next = malloc(sizeof(SnakeNode));
-		playerCurNode = playerCurNode->next;
-		playerCurNode->next = NULL;
-		playerCurNode->xPos = xPosNext;
-		playerCurNode->yPos = yPosNext;
+		curPlayerNode->next = malloc(sizeof(SnakeNode));
+		curPlayerNode = curPlayerNode->next;
+		curPlayerNode->next = NULL;
+		curPlayerNode->xPos = xPosNext;
+		curPlayerNode->yPos = yPosNext;
 	}
 	
 	srand(SDL_GetTicks());
+
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Main loop, poll for events!
 	 */
 
-	char playerDirection = 'u';
+	const int TIME_UNTIL_NEXT_MOVE = 250;
+
+	player->direction = 'u';
+	player->pendingDirection = 'u';
 	//Uint64 timeLastMove = SDL_GetTicks64();
-	Uint64 timeNextMove = SDL_GetTicks64() + 500;
+	Uint64 nextMoveTime = SDL_GetTicks64() + TIME_UNTIL_NEXT_MOVE;
 
 	SDL_Event event;
 	bool isRunning = true;
@@ -159,7 +185,7 @@ int main(void)
 		SDL_RenderClear(renderer);
 
 		// set the earliest time the next frame occurs
-		Uint64 timeNextFrame = SDL_GetTicks64() + (1000 / 60);
+		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
 		
 		// poll events
 		while (SDL_PollEvent(&event))
@@ -176,21 +202,21 @@ int main(void)
 				// log the name of pressed key
 				SDL_Log("%s", SDL_GetKeyName(pressedKey));
 
-				if (pressedKey == SDLK_RIGHT && playerDirection != 'l') // pressed right key, skip if direction is left
+				if (pressedKey == SDLK_RIGHT && player->direction != 'l') // pressed right key, skip if direction is left
 				{
-					playerDirection = 'r'; // right
+					player->pendingDirection = 'r'; // right
 				}
-				else if (pressedKey == SDLK_UP && playerDirection != 'd') // pressed up key, skip if direction is down
+				else if (pressedKey == SDLK_UP && player->direction != 'd') // pressed up key, skip if direction is down
 				{
-					playerDirection = 'u'; // up
+					player->pendingDirection = 'u'; // up
 				}
-				else if (pressedKey == SDLK_LEFT && playerDirection != 'r') // pressed left key, skip if direction is right
+				else if (pressedKey == SDLK_LEFT && player->direction != 'r') // pressed left key, skip if direction is right
 				{
-					playerDirection = 'l'; // left
+					player->pendingDirection = 'l'; // left
 				}
-				else if (pressedKey == SDLK_DOWN && playerDirection != 'u') // pressed down key, skip if direction is up
+				else if (pressedKey == SDLK_DOWN && player->direction != 'u') // pressed down key, skip if direction is up
 				{
-					playerDirection = 'd'; // down
+					player->pendingDirection = 'd'; // down
 				}
 				//else if (event.key.keysym.sym == SDLK_f) // key f
 				//{
@@ -209,6 +235,7 @@ int main(void)
 			}
 
 		}
+		
 
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		 * Player's snake moves every 1/2 of a second, so if current time is greater than or equal to the next
@@ -218,17 +245,19 @@ int main(void)
 
 		Uint64 timeNow = SDL_GetTicks64();
 
-		if (timeNow >= timeNextMove)
+		if (timeNow >= nextMoveTime)
 		{
-			timeNextMove = timeNow + 500;
+			nextMoveTime = timeNow + TIME_UNTIL_NEXT_MOVE;
 
 			int xPosDelta, yPosDelta;
+			// update direction
+			player->direction = player->pendingDirection;
 
-			SDL_Log("%d\n", playerDirection);
+			SDL_Log("%c\n", player->direction);
 			
-			switch (playerDirection)
+			// displace the snake depending on the direction it was set to move
+			switch (player->direction)
 			{
-
 				case 'r':
 					xPosDelta = WINDOW_WIDTH / 40;
 					yPosDelta = 0;
@@ -249,56 +278,82 @@ int main(void)
 					SDL_Log("Huh??");
 			}
 
-			playerCurNode = playerHead;
-			int xPosNext = playerCurNode->xPos + xPosDelta;
-			int yPosNext = playerCurNode->yPos + yPosDelta;
-			while (playerCurNode)
+			curPlayerNode = player->head;
+			int xPosNext = curPlayerNode->xPos + xPosDelta;
+			int yPosNext = curPlayerNode->yPos + yPosDelta;
+
+			// if the snake is out of bounds, loop to other side
+			if (xPosNext < 0) // snake went left out of bounds
 			{
-				int xPosOld = playerCurNode->xPos;
-				int yPosOld = playerCurNode->yPos;
-				playerCurNode->xPos = xPosNext;
-				playerCurNode->yPos = yPosNext;
+				xPosNext += WINDOW_WIDTH;
+			}
+
+			if (xPosNext == WINDOW_WIDTH) // snake went right out of bounds
+			{
+				xPosNext = 0;
+			}
+
+			if (yPosNext < 0) // snake went up out of bounds
+			{
+				yPosNext += WINDOW_HEIGHT;
+			}
+
+			if (yPosNext == WINDOW_HEIGHT) // snake went down out of bounds
+			{
+				yPosNext = 0;
+			}
+
+			// update body of the snake to move it
+			while (curPlayerNode)
+			{
+				int xPosOld = curPlayerNode->xPos;
+				int yPosOld = curPlayerNode->yPos;
+				curPlayerNode->xPos = xPosNext;
+				curPlayerNode->yPos = yPosNext;
 				xPosNext = xPosOld;
 				yPosNext = yPosOld;
-				playerCurNode = playerCurNode->next;
+				curPlayerNode = curPlayerNode->next;
 			}
 		}
+
 
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		 * Draw the snake and wait, wait until next frame, draw frame.
 		 */
 		
-		playerCurNode = playerHead;
+		curPlayerNode = player->head;
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-		while (playerCurNode)
+		while (curPlayerNode)
 		{
 			// SDL_SetRenderDrawColor(renderer, rand() % 256, rand() % 256, rand() % 256, 255);
-			SDL_Rect drawRect = {playerCurNode->xPos, playerCurNode->yPos, WINDOW_WIDTH / 40, WINDOW_HEIGHT / 30};
+			SDL_Rect drawRect = {curPlayerNode->xPos, curPlayerNode->yPos, WINDOW_WIDTH / 40, WINDOW_HEIGHT / 30};
 			SDL_RenderFillRect(renderer, &drawRect);
-			playerCurNode = playerCurNode->next;
+			curPlayerNode = curPlayerNode->next;
 		}
 		
 		// wait until next frame
-		while (SDL_GetTicks64() < timeNextFrame);
+		while (SDL_GetTicks64() < nextFrameTime);
 		
 		// update game state, draw current frame
 		SDL_RenderPresent(renderer);
 		
 	} // main loop end
-
-
 	
+
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Free the player's snake's nodes and destroy renderer, window.
 	 */
 
-	playerCurNode = playerHead;
-	while (playerCurNode)
+	curPlayerNode = player->head;
+	while (curPlayerNode)
 	{
-		 SnakeNode *playerNextNode = playerCurNode->next;
-		 free(playerCurNode);
-		 playerCurNode = playerNextNode;
-	}	
+		 SnakeNode *playerNextNode = curPlayerNode->next;
+		 free(curPlayerNode);
+		 curPlayerNode = playerNextNode;
+	}
+
+	// if you really love them, let them go
+	free(player);
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
