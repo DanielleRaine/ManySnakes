@@ -1,5 +1,4 @@
-/* ManyS  nakes by Danielle Raine
- * Start Date: June 8th, 2024
+/* ManySnakes by Danielle Raine
  */
 
 #include "config.h"
@@ -9,59 +8,11 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include "snake.h"
 
 
 int main(void)
 {
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Declare constants and enums.
-	 */
-
-	typedef enum
-	{
-		RIGHT = 'r',
-		UP = 'u',
-		LEFT = 'l',
-		DOWN = 'd'
-	} Direction;
-
-	typedef enum
-	{
-		APPLE = 'a'
-	} FoodType;
-
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Declare snake, snake body structs.
-	 */	
-
-	typedef struct SnakeNode
-	{
-		struct SnakeNode *next;
-		int xPos;
-		int yPos;
-	} SnakeNode;
-
-	typedef struct 
-	{
-		SnakeNode *head;
-		Uint64 speed;	// how many milliseconds it takes to move one square
-		Direction currentDirection;	// current direction of the snake
-		Direction pendingDirection;	// direction for the next move of the snake
-		Uint64 lastMoveTime;	// time in milliseconds since last move
-		Uint64 nextMoveTime;	// time in milliseconds until next move
-		char name[];	// name of the snake
-	} Snake;
-
-	typedef struct
-	{
-		FoodType type;
-		int xPos;
-		int yPos;
-		char filepath[];
-	} Food;
-
-
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Print the game's description, Github URL, and version numbers of the game, C, and SDL.
 	 */
@@ -173,36 +124,26 @@ int main(void)
 	 * Create the player's snake and seed rand.
 	 */
 
-	Snake *player = malloc(sizeof(Snake));
-	
-	// set the speed and direction of the player
-	player->speed = 250;
-	player->currentDirection = UP;
-	player->pendingDirection = UP;
-	
-	// create the head and its position
-	player->head = malloc(sizeof(SnakeNode));
-	player->head->next = NULL;
-	player->head->xPos = WINDOW_WIDTH / 2;
-	player->head->yPos = WINDOW_HEIGHT / 2;
-
-	SnakeNode *curPlayerNode = player->head;
-
-	// create body
-	for (int i = 0; i < 2; i++)
-	{
-		int xPosNext = curPlayerNode->xPos;
-		int yPosNext = curPlayerNode->yPos + MOVE_H;
-
-		curPlayerNode->next = malloc(sizeof(SnakeNode));
-		curPlayerNode = curPlayerNode->next;
-		curPlayerNode->next = NULL;
-		curPlayerNode->xPos = xPosNext;
-		curPlayerNode->yPos = yPosNext;
-	}
+	Snake *player = MNYSNKS_CreateSnake(250, UP, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, MOVE_W, MOVE_H, 3);
 	
 	// seed rand
 	srand(SDL_GetTicks());
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Make the fooood!!!!!
+	 */
+
+//	Food *apple = malloc(sizeof(Food));
+//	apple->type = APPLE;
+//	apple->image = IMG_LoadTexture(renderer, "./images/apple.png");
+//	if (!apple->image)
+//	{
+//		//FIXME
+//	}
+//
+//
+
 
 	// set player mover times
 	player->lastMoveTime = SDL_GetTicks64();
@@ -213,11 +154,12 @@ int main(void)
 	 * Main loop, poll for events!
 	 */
 
-	SDL_Event event;
 	bool isRunning = true;
 	// main loop	
 	while (isRunning)
 	{
+		SDL_Event event;
+
 		// clear frame
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 		SDL_RenderClear(renderer);
@@ -285,73 +227,10 @@ int main(void)
 
 		if (timeNow >= player->nextMoveTime)
 		{
+			player->lastMoveTime = player->nextMoveTime;
 			player->nextMoveTime = timeNow + player->speed;
 
-			int xPosDelta, yPosDelta;
-			// update direction
-			player->currentDirection = player->pendingDirection;
-
-			SDL_Log("%c\n", player->currentDirection);
-			
-			// displace the snake depending on the direction it was set to move
-			switch (player->currentDirection)
-			{
-				case RIGHT:
-					xPosDelta = MOVE_W;
-					yPosDelta = 0;
-					break;
-				case UP:
-					xPosDelta = 0;
-					yPosDelta = -MOVE_H;
-					break;
-				case LEFT:
-					xPosDelta = -MOVE_W;
-					yPosDelta = 0;
-					break;
-				case DOWN:
-					xPosDelta = 0;
-					yPosDelta = MOVE_H;
-					break;
-				default:
-					SDL_Log("Huh??");
-			}
-
-			curPlayerNode = player->head;
-			int xPosNext = curPlayerNode->xPos + xPosDelta;
-			int yPosNext = curPlayerNode->yPos + yPosDelta;
-
-			// if the snake is out of bounds, loop to other side
-			if (xPosNext < 0) // snake went left out of bounds
-			{
-				xPosNext += WINDOW_WIDTH;
-			}
-
-			if (xPosNext >= WINDOW_WIDTH) // snake went right out of bounds
-			{
-				xPosNext = 0;
-			}
-
-			if (yPosNext < 0) // snake went up out of bounds
-			{
-				yPosNext += WINDOW_HEIGHT;
-			}
-
-			if (yPosNext >= WINDOW_HEIGHT) // snake went down out of bounds
-			{
-				yPosNext = 0;
-			}
-
-			// update body of the snake to move it
-			while (curPlayerNode)
-			{
-				int xPosOld = curPlayerNode->xPos;
-				int yPosOld = curPlayerNode->yPos;
-				curPlayerNode->xPos = xPosNext;
-				curPlayerNode->yPos = yPosNext;
-				xPosNext = xPosOld;
-				yPosNext = yPosOld;
-				curPlayerNode = curPlayerNode->next;
-			}
+			MNYSNKS_StepSnake(player, 0, WINDOW_WIDTH, 0, WINDOW_HEIGHT);
 		}
 
 
@@ -359,13 +238,13 @@ int main(void)
 		 * Draw the snake and wait, wait until next frame, draw frame.
 		 */
 		
-		curPlayerNode = player->head;
+		SnakeNode *curPlayerNode = player->head;
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 		while (curPlayerNode)
 		{
 			// SDL_SetRenderDrawColor(renderer, rand() % 256, rand() % 256, rand() % 256, 255);
-			SDL_Rect drawRect = {curPlayerNode->xPos, curPlayerNode->yPos, MOVE_W, MOVE_H};
-			SDL_RenderFillRect(renderer, &drawRect);
+			// SDL_Rect drawRect = {curPlayerNode->xPos, curPlayerNode->yPos, MOVE_W, MOVE_H};
+			SDL_RenderFillRect(renderer, &curPlayerNode->body);
 			curPlayerNode = curPlayerNode->next;
 		}
 		
@@ -382,16 +261,18 @@ int main(void)
 	 * Free the player's snake's nodes and destroy renderer, window.
 	 */
 
-	curPlayerNode = player->head;
-	while (curPlayerNode)
-	{
-		 SnakeNode *playerNextNode = curPlayerNode->next;
-		 free(curPlayerNode);
-		 curPlayerNode = playerNextNode;
-	}
+	// curPlayerNode = player->head;
+	// while (curPlayerNode)
+	// {
+	// 	 SnakeNode *playerNextNode = curPlayerNode->next;
+	// 	 free(curPlayerNode);
+	// 	 curPlayerNode = playerNextNode;
+	// }
+
+	MNYSNKS_DestroySnake(player);
 
 	// if you really love them, let them go
-	free(player);
+	// free(player);
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);

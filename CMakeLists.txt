@@ -32,6 +32,7 @@ configure_file(config.h.in config.h)
 add_executable(ManySnakes
 	main.c
 	math.c
+	snake.c
 )
 
 # specify where exxecutable target should look for include files
