@@ -124,7 +124,7 @@ int main(void)
 	 * Create the player's snake and seed rand.
 	 */
 
-	Snake *player = MNYSNKS_CreateSnake(250, UP, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, MOVE_W, MOVE_H, 3);
+	Snake *player = MNYSNKS_CreateSnake(250, UP, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, MOVE_W, MOVE_H, 5);
 	
 	// seed rand
 	srand(SDL_GetTicks());
@@ -218,7 +218,7 @@ int main(void)
 		
 
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		 * Player's snake moves every NEXT_FRAME, so if current time is greater than or equal to the next
+		 * Snakes move on >= snake->nextMoveTime, so if current time is greater than or equal to the next
 		 * time the snake is supposed to move, update the position of the snake depending on the direction 
 		 * that the player pressed.
 		 */
@@ -260,25 +260,12 @@ int main(void)
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Free the player's snake's nodes and destroy renderer, window.
 	 */
-
-	// curPlayerNode = player->head;
-	// while (curPlayerNode)
-	// {
-	// 	 SnakeNode *playerNextNode = curPlayerNode->next;
-	// 	 free(curPlayerNode);
-	// 	 curPlayerNode = playerNextNode;
-	// }
-
-	MNYSNKS_DestroySnake(player);
-
+	
 	// if you really love them, let them go
-	// free(player);
+	MNYSNKS_DestroySnake(player);
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
-
-	// print sdl subsystem initialization flags
-	// printf("%X\n\n", SDL_WasInit(SDL_INIT_EVERYTHING));
 
 	return 0;
 }

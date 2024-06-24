@@ -26,21 +26,19 @@ include_directories(ManySnakes
 )
 
 # configure project config file
-configure_file(config.h.in config.h)
+configure_file(src/config.h.in config.h)
 
 # add executable called ManySnakes build from source files
 add_executable(ManySnakes
-	main.c
-	math.c
-	snake.c
+	src/main.c
+	src/math.c
+	src/snake.c
 )
 
-# specify where exxecutable target should look for include files
+# specify where executable target should look for include files
 target_include_directories(ManySnakes PUBLIC
 	"${PROJECT_BINARY_DIR}"
 )
 
 # link libraries
 target_link_libraries(ManySnakes ${SDL2_LIBRARIES} SDL2_image::SDL2_image)
-
-# I hate cmake, nothing makes sense
