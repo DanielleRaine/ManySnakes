@@ -1,7 +1,7 @@
 #ifndef SNAKE_H
 #define SNAKE_H
 
-
+#include <stdbool.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
@@ -35,18 +35,18 @@ typedef enum
 typedef struct SnakeNode
 {
     	struct SnakeNode *next;
-    	SDL_Rect body;
+	int x, y;
 } SnakeNode;
 
 // snake container struct that holds overall properties and the head SnakeNode
 typedef struct 
 {
-    	SnakeNode *head;
-    	SnakeNode *tail;
+    	SnakeNode *head, *tail;
     	Uint64 speed;	// in units of milliseconds per block
-    	Direction currentDirection;	// current direction of the snake
+    	int w, h;	// width and height of each SnakeNode
+	int size;	// number of SnakeNodes
+	Direction currentDirection;	// current direction of the snake
     	Direction pendingDirection;	// direction for the next move of the snake
-    	int size;
     	Uint64 lastMoveTime;	// time in milliseconds since last move
     	Uint64 nextMoveTime;	// time in milliseconds until next move
 } Snake;
@@ -55,16 +55,16 @@ typedef struct
 typedef struct
 {
     	FoodType type;
-    	SDL_Rect shape;
+    	SDL_Rect body;
     	SDL_Texture *image;	// image of the food
 } Food;
 
-Snake *MNYSNKS_CreateSnake(Uint64 speed, Direction direction, int xPos, int yPos, int wStep, int hStep, int size);
+Snake *MNYSNKS_CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction);
+void MNYSNKS_StepSnake(Snake *snake, SDL_Rect *bounds);
 void MNYSNKS_DestroySnake(Snake *snake);
 
-void MNYSNKS_StepSnake(Snake *snake, int xLeftBound, int xRightBound, int yUpBound, int yDownBound);
-
-Food *MNYSNKS_CreateFood(SDL_Renderer *renderer, FoodType type, int width, int height, char filepath[]);
+Food *MNYSNKS_CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const char *filepath);
+void MNYSNKS_RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds);
 void MNYSNKS_DestroyFood(Food *food);
 
 

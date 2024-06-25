@@ -11,3 +11,4 @@ CTestTestfile.cmake
 _deps
 ManySnakes
 config.h
+run.sh

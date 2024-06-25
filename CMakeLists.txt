@@ -8,6 +8,8 @@ project(ManySnakes
 	LANGUAGES C
 )
 
+add_definitions(-DROOT_DIR="${CMAKE_SOURCE_DIR}")
+
 # specify c standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)

@@ -83,25 +83,30 @@ int main(void)
 	 * Get display and window bounds, create a window and renderer.
 	 */
 
-	// display size struct
-	SDL_Rect displayBounds;
-	// get display bounds. if error, return
-	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
-	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-		return 1;
-	}
+//	// display size struct
+//	SDL_Rect displayBounds;
+//	// get display bounds. if error, return
+//	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
+//	{
+//		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+//		return 1;
+//	}
+//
+//	// window dimensions
+//	const int WINDOW_WIDTH = displayBounds.w * 2 / 3;
+//	const int WINDOW_HEIGHT = displayBounds.h * 2 / 3;
+//
+//	// move distance dimensions
+//	const int MOVE_W = gcd(WINDOW_WIDTH, WINDOW_HEIGHT) / 2;
+//	const int MOVE_H = MOVE_W;
 
-	// window dimensions
-	const int WINDOW_WIDTH = displayBounds.w * 2 / 3;
-	const int WINDOW_HEIGHT = displayBounds.h * 2 / 3;
+	const int WINDOW_W = 1280;
+	const int WINDOW_H = 720;
+	const int BOX_W = 20, BOX_H = 20;
 
-	// move distance dimensions
-	const int MOVE_W = gcd(WINDOW_WIDTH, WINDOW_HEIGHT) / 2;
-	const int MOVE_H = MOVE_W;
 
 	// create window
-	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_W, WINDOW_H, 0);
 	// if window doesn't exist, print error and return
 	if (!window)
 	{
@@ -124,7 +129,10 @@ int main(void)
 	 * Create the player's snake and seed rand.
 	 */
 
-	Snake *player = MNYSNKS_CreateSnake(250, UP, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, MOVE_W, MOVE_H, 5);
+	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
+	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
+
+	Snake *player = MNYSNKS_CreateSnake(125, &body, 3, UP);
 	
 	// seed rand
 	srand(SDL_GetTicks());
@@ -134,15 +142,16 @@ int main(void)
 	 * Make the fooood!!!!!
 	 */
 
-//	Food *apple = malloc(sizeof(Food));
-//	apple->type = APPLE;
-//	apple->image = IMG_LoadTexture(renderer, "./images/apple.png");
-//	if (!apple->image)
-//	{
-//		//FIXME
-//	}
-//
-//
+
+	SDL_Log("%s%s", ROOT_DIR, "/images/apple.png");
+
+	char rootdir[128] = ROOT_DIR;
+	strcat(rootdir, "/images/apple.png");
+
+	body.x = body.y = 0;
+	Food *apple = MNYSNKS_CreateFood(renderer, APPLE, &body, rootdir);
+
+	MNYSNKS_RandPosFood(apple, player, &bounds);
 
 
 	// set player mover times
@@ -163,6 +172,10 @@ int main(void)
 		// clear frame
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 		SDL_RenderClear(renderer);
+
+		// draw snake play area
+		SDL_SetRenderDrawColor(renderer, 160, 82, 45, 255);
+		SDL_RenderFillRect(renderer, &bounds);
 
 		// set the earliest time the next frame occurs
 		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
@@ -198,20 +211,6 @@ int main(void)
 				{
 					player->pendingDirection = DOWN;
 				}
-				//else if (event.key.keysym.sym == SDLK_f) // key f
-				//{
-				//	// draw a random box on a snake space
-				//	SDL_Rect drawRect = {rand() % 40 * WINDOW_WIDTH / 40, rand() % 30 * WINDOW_HEIGHT / 30, WINDOW_WIDTH / 40, WINDOW_HEIGHT / 30};
-				//	SDL_Log("Rect at %d, %d with %d, %d.", drawRect.x, drawRect.y, drawRect.w, drawRect.h);
-				//	if (SDL_SetRenderDrawColor(renderer, rand() % 256, rand() % 256, rand() % 256, 255) || SDL_RenderFillRect(renderer, &drawRect))
-				//	{
-				//		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-				//		SDL_DestroyRenderer(renderer);
-				//		SDL_DestroyWindow(window);
-				//		return 1;
-				//	
-				//	}
-				//}
 			}
 
 		}
@@ -230,23 +229,28 @@ int main(void)
 			player->lastMoveTime = player->nextMoveTime;
 			player->nextMoveTime = timeNow + player->speed;
 
-			MNYSNKS_StepSnake(player, 0, WINDOW_WIDTH, 0, WINDOW_HEIGHT);
+			MNYSNKS_StepSnake(player, &bounds);
 		}
 
 
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		 * Draw the snake and wait, wait until next frame, draw frame.
+		 * Draw the fruit, snake, and wait until next frame, draw frame.
 		 */
+
+		if (SDL_RenderCopy(renderer, apple->image, NULL, &apple->body) != 0)
+		{
+			
+		}
 		
 		SnakeNode *curPlayerNode = player->head;
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+		SDL_SetRenderDrawColor(renderer, 0, 100, 0, 255);
 		while (curPlayerNode)
 		{
-			// SDL_SetRenderDrawColor(renderer, rand() % 256, rand() % 256, rand() % 256, 255);
-			// SDL_Rect drawRect = {curPlayerNode->xPos, curPlayerNode->yPos, MOVE_W, MOVE_H};
-			SDL_RenderFillRect(renderer, &curPlayerNode->body);
+			SDL_Rect rect = {curPlayerNode->x, curPlayerNode->y, player->w, player->h};
+			SDL_RenderFillRect(renderer, &rect);
 			curPlayerNode = curPlayerNode->next;
 		}
+
 		
 		// wait until next frame
 		while (SDL_GetTicks64() < nextFrameTime);
@@ -262,6 +266,7 @@ int main(void)
 	 */
 	
 	// if you really love them, let them go
+	// MNYSNKS_DestroyFood(food);
 	MNYSNKS_DestroySnake(player);
 
 	SDL_DestroyRenderer(renderer);
