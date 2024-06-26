@@ -229,7 +229,22 @@ int main(void)
 			player->lastMoveTime = player->nextMoveTime;
 			player->nextMoveTime = timeNow + player->speed;
 
+			int xLast = player->tail->x;
+			int yLast = player->tail->y;
 			MNYSNKS_StepSnake(player, &bounds);
+
+			if (MNYSNKS_CheckCollisionSnake(player))
+			{
+				isRunning = false;
+			}
+
+			if (player->head->x == apple->body.x && player->head->y == apple->body.y)
+			{
+				MNYSNKS_RandPosFood(apple, player, &bounds);
+				MNYSNKS_GrowSnake(player, xLast, yLast);
+				SDL_Log("Size: %d", player->size);
+			}
+
 		}
 
 
@@ -237,18 +252,19 @@ int main(void)
 		 * Draw the fruit, snake, and wait until next frame, draw frame.
 		 */
 
+
 		if (SDL_RenderCopy(renderer, apple->image, NULL, &apple->body) != 0)
 		{
 			
 		}
 		
-		SnakeNode *curPlayerNode = player->head;
+		SnakeNode *cur = player->head;
 		SDL_SetRenderDrawColor(renderer, 0, 100, 0, 255);
-		while (curPlayerNode)
+		while (cur)
 		{
-			SDL_Rect rect = {curPlayerNode->x, curPlayerNode->y, player->w, player->h};
+			SDL_Rect rect = {cur->x, cur->y, player->w, player->h};
 			SDL_RenderFillRect(renderer, &rect);
-			curPlayerNode = curPlayerNode->next;
+			cur = cur->next;
 		}
 
 		

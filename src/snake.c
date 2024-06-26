@@ -34,6 +34,7 @@ Snake *MNYSNKS_CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction dir
     	    	snake->tail = snake->tail->next;
     	}
     	snake->tail->next = NULL;
+	snake->size = size;
 
     	return snake;
 }
@@ -100,6 +101,37 @@ void MNYSNKS_StepSnake(Snake *snake, SDL_Rect *bounds)
     	    	yNext = yLast;
     	    	cur = cur->next;
     	}
+}
+
+void MNYSNKS_GrowSnake(Snake *snake, int x, int y)
+{
+	snake->tail->next = malloc(sizeof(SnakeNode));
+	snake->tail = snake->tail->next;
+	snake->tail->x = x;
+	snake->tail->y = y;
+	snake->tail->next = NULL;
+	++snake->size;
+}
+
+bool MNYSNKS_CheckCollisionSnake(Snake *snake)
+{
+	if (snake->size < 5)
+	{
+		return false;
+	}
+
+	SnakeNode *cur = snake->head->next->next->next->next;
+	while (cur)
+	{
+		if (cur->x == snake->head->x && cur->y == snake->head->y)
+		{
+			return true;
+		}
+
+		cur = cur->next;
+	}
+
+	return false;
 }
 
 void MNYSNKS_DestroySnake(Snake *snake)

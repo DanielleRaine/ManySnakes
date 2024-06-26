@@ -61,6 +61,8 @@ typedef struct
 
 Snake *MNYSNKS_CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction);
 void MNYSNKS_StepSnake(Snake *snake, SDL_Rect *bounds);
+void MNYSNKS_GrowSnake(Snake *snake, int x, int y);
+bool MNYSNKS_CheckCollisionSnake(Snake *snake);
 void MNYSNKS_DestroySnake(Snake *snake);
 
 Food *MNYSNKS_CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const char *filepath);
