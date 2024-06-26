@@ -11,6 +11,9 @@
 #include "snake.h"
 
 
+//void MNYSNKS_Play(SDL_Renderer *renderer, )
+
+
 int main(void)
 {
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,40 +25,39 @@ int main(void)
 	SDL_Log("Homepage Url %s\n", ManySnakes_HOMEPAGE_URL);
 	
 	// print game version
-	SDL_Log("Game Version ");
 	switch (ManySnakes_VERSION_PHASE)
 	{
 		case 0: // is release version
-			printf("Release %d.%d.%d\n", ManySnakes_VERSION_MAJOR, ManySnakes_VERSION_MINOR, ManySnakes_VERSION_PATCH);
+			SDL_Log("Game Version Release %d.%d.%d\n", ManySnakes_VERSION_MAJOR, ManySnakes_VERSION_MINOR, ManySnakes_VERSION_PATCH);
 			break;
 		case 1: // is release preview version
-			printf("Release %d.%d.0-preview.%d\n", ManySnakes_VERSION_MAJOR, ManySnakes_VERSION_MINOR, ManySnakes_VERSION_PATCH);
+			SDL_Log("Game Version Release %d.%d.0-preview.%d\n", ManySnakes_VERSION_MAJOR, ManySnakes_VERSION_MINOR, ManySnakes_VERSION_PATCH);
 			break;
 		case 2: // is pre-alpha version
-			printf("pre-alpha.%d\n", ManySnakes_VERSION_PATCH);
+			SDL_Log("Game Version pre-alpha.%d\n", ManySnakes_VERSION_PATCH);
 			break;
 		case 3: // is alpha version
-			printf("alpha-%d.%d\n", ManySnakes_VERSION_MINOR, ManySnakes_VERSION_PATCH);
+			SDL_Log("Game Version alpha-%d.%d\n", ManySnakes_VERSION_MINOR, ManySnakes_VERSION_PATCH);
 			break;
 		case 4: // is beta version
-			printf("beta-%d.%d.%d\n", ManySnakes_VERSION_MAJOR, ManySnakes_VERSION_MINOR, ManySnakes_VERSION_PATCH);
+			SDL_Log("Game Version beta-%d.%d.%d\n", ManySnakes_VERSION_MAJOR, ManySnakes_VERSION_MINOR, ManySnakes_VERSION_PATCH);
 			break;
 		default: // what happened here???
-			printf("Unknown???\n");
+			SDL_Log("Unknown???\n");
 	}
 
 	// print c version
 	SDL_Log("C Version %ld\n", __STDC_VERSION__ );
 	
 	// sdl version structs
-	// SDL_version compiled;
-	// SDL_version linked;
+	SDL_version compiled;
+	SDL_version linked;
 	
 	// print compiled, linked sdl version
-	// SDL_VERSION(&compiled);
-	// SDL_GetVersion(&linked);
-	// SDL_Log("Compiled against SDL version %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
-	// SDL_Log("Linking against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
+	SDL_VERSION(&compiled);
+	SDL_GetVersion(&linked);
+	SDL_Log("Compiled against SDL version %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
+	SDL_Log("Linking against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -126,12 +128,15 @@ int main(void)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Create the player's snake and seed rand.
+	 * Create the body segment size for snake and food, set play bounds,
+	 * create the player's snake and seed rand.
 	 */
 
+	// set body segment and play bounds
 	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
 	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
 
+	// create player's snake
 	Snake *player = MNYSNKS_CreateSnake(125, &body, 3, UP);
 	
 	// seed rand
@@ -139,29 +144,25 @@ int main(void)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Make the fooood!!!!!
+	 * Set the food texture PNG path, create food, and give it a random position.
 	 */
 
-
-	SDL_Log("%s%s", ROOT_DIR, "/images/apple.png");
-
-	char rootdir[128] = ROOT_DIR;
-	strcat(rootdir, "/images/apple.png");
+	char applePNG[128] = ROOT_DIR;
+	strcat(applePNG, "/images/apple.png");
 
 	body.x = body.y = 0;
-	Food *apple = MNYSNKS_CreateFood(renderer, APPLE, &body, rootdir);
+	Food *apple = MNYSNKS_CreateFood(renderer, APPLE, &body, applePNG);
 
 	MNYSNKS_RandPosFood(apple, player, &bounds);
 
 
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Set time of next player movement, main loop, poll for events!
+	 */
+	
 	// set player mover times
 	player->lastMoveTime = SDL_GetTicks64();
 	player->nextMoveTime = player->lastMoveTime + player->speed;
-
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Main loop, poll for events!
-	 */
 
 	bool isRunning = true;
 	// main loop	
@@ -173,13 +174,11 @@ int main(void)
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 		SDL_RenderClear(renderer);
 
-		// draw snake play area
-		SDL_SetRenderDrawColor(renderer, 160, 82, 45, 255);
-		SDL_RenderFillRect(renderer, &bounds);
-
 		// set the earliest time the next frame occurs
 		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
 		
+//		while (SDL_PollEvent(&event))
+
 		// poll events
 		while (SDL_PollEvent(&event))
 		{
@@ -215,33 +214,44 @@ int main(void)
 
 		}
 		
+		// draw snake play area
+		SDL_SetRenderDrawColor(renderer, 92, 64, 51, 255);
+		SDL_RenderFillRect(renderer, &bounds);
+
 
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		 * Snakes move on >= snake->nextMoveTime, so if current time is greater than or equal to the next
-		 * time the snake is supposed to move, update the position of the snake depending on the direction 
-		 * that the player pressed.
+		 * Move snake when time has elapsed. If snake eats food, reposition the food and grow snake.
+		 * If the snake hits itself, end game.
 		 */
 
 		Uint64 timeNow = SDL_GetTicks64();
 
 		if (timeNow >= player->nextMoveTime)
 		{
+			// update next move time
 			player->lastMoveTime = player->nextMoveTime;
 			player->nextMoveTime = timeNow + player->speed;
 
-			int xLast = player->tail->x;
-			int yLast = player->tail->y;
-			MNYSNKS_StepSnake(player, &bounds);
+			// store tail position for new tail if snake grows 
+			int xTail = player->tail->x;
+			int yTail = player->tail->y;
 
-			if (MNYSNKS_CheckCollisionSnake(player))
+			// update the snake's position
+			MNYSNKS_StepSnake(player, &bounds);
+			
+			// if snake hits itself, end game
+			if (MNYSNKS_CheckCollisionSnake(player)) 
 			{
 				isRunning = false;
+				SDL_Log("Game Over");
 			}
-
+ 
+			// if snake eats food, grow snake and move food
 			if (player->head->x == apple->body.x && player->head->y == apple->body.y)
 			{
+				//FIXME add resolution case when snake covers whole map (probably not needed)
 				MNYSNKS_RandPosFood(apple, player, &bounds);
-				MNYSNKS_GrowSnake(player, xLast, yLast);
+				MNYSNKS_GrowSnake(player, xTail, yTail);
 				SDL_Log("Size: %d", player->size);
 			}
 
@@ -255,15 +265,20 @@ int main(void)
 
 		if (SDL_RenderCopy(renderer, apple->image, NULL, &apple->body) != 0)
 		{
-			
+			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+			isRunning = false;
 		}
 		
 		SnakeNode *cur = player->head;
-		SDL_SetRenderDrawColor(renderer, 0, 100, 0, 255);
+		SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 255);
 		while (cur)
 		{
 			SDL_Rect rect = {cur->x, cur->y, player->w, player->h};
-			SDL_RenderFillRect(renderer, &rect);
+			if (SDL_RenderFillRect(renderer, &rect) != 0)
+			{
+				SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+				isRunning = false;
+			}
 			cur = cur->next;
 		}
 

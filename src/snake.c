@@ -11,14 +11,13 @@ Snake *MNYSNKS_CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction dir
 
 	// create snake struct and set speed and direction
     	Snake *snake = malloc(sizeof(Snake));
-    	
 	snake->speed = speed;
+	snake->currentDirection = snake->pendingDirection = direction;
 
+	// set shape of each SnakeNode
 	snake->w = body->w;
 	snake->h = body->h;
 
-	snake->currentDirection = snake->pendingDirection = direction;
-    	
 	// create snake head and set starting position and size of each node
     	snake->head = snake->tail = malloc(sizeof(SnakeNode));    
     	snake->head->x = body->x;
@@ -34,7 +33,6 @@ Snake *MNYSNKS_CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction dir
     	    	snake->tail = snake->tail->next;
     	}
     	snake->tail->next = NULL;
-	snake->size = size;
 
     	return snake;
 }
@@ -115,14 +113,17 @@ void MNYSNKS_GrowSnake(Snake *snake, int x, int y)
 
 bool MNYSNKS_CheckCollisionSnake(Snake *snake)
 {
+	// a snake of less than 5 nodes cannot collide with itself
 	if (snake->size < 5)
 	{
 		return false;
 	}
 
+	// a snake of minimum 5 nodes has a 5th node to start from
 	SnakeNode *cur = snake->head->next->next->next->next;
 	while (cur)
 	{
+		// if the position of a node is the same as the head, then collision
 		if (cur->x == snake->head->x && cur->y == snake->head->y)
 		{
 			return true;
@@ -171,6 +172,7 @@ void MNYSNKS_RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
 	bool validPos = false;
 	while (!validPos)
 	{
+		// get a random x and y position in a grid layout
 		food->body.x = rand() % (bounds->w / food->body.w) * food->body.w + bounds->x;
 		food->body.y = rand() % (bounds->h / food->body.h) * food->body.h + bounds->y;
 
@@ -178,7 +180,8 @@ void MNYSNKS_RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
 		SnakeNode *cur = snake->head;
 		while(cur)
 		{
-			if (food->body.x == cur->x || food->body.y == cur->y)
+			// if the food exists in the same place as the snake, find new random position
+			if (food->body.x == cur->x && food->body.y == cur->y)
 			{
 				validPos = false;
 				break;
