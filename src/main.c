@@ -11,7 +11,17 @@
 #include "snake.h"
 
 
-//void MNYSNKS_Play(SDL_Renderer *renderer, )
+void MNYSNKS_Play(SDL_Window *window, SDL_Renderer *renderer, )
+{
+	int w
+
+	// set body segment and play bounds
+	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
+	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
+	
+	// create player's snake
+	Snake *player = MNYSNKS_CreateSnake(125, &body, 3, UP);
+}
 
 
 int main(void)
@@ -132,12 +142,7 @@ int main(void)
 	 * create the player's snake and seed rand.
 	 */
 
-	// set body segment and play bounds
-	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
-	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
 
-	// create player's snake
-	Snake *player = MNYSNKS_CreateSnake(125, &body, 3, UP);
 	
 	// seed rand
 	srand(SDL_GetTicks());
