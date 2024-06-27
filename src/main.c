@@ -11,20 +11,36 @@
 #include "snake.h"
 
 
-void MNYSNKS_Play(SDL_Window *window, SDL_Renderer *renderer, )
+bool RenderFood(SDL_Renderer *renderer, Food *food)
 {
-	int w
+	if (SDL_RenderCopy(renderer, food->image, NULL, &food->body) != 0)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		return false;
+	}
 
-	// set body segment and play bounds
-	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
-	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
-	
-	// create player's snake
-	Snake *player = MNYSNKS_CreateSnake(125, &body, 3, UP);
+	return true;	
 }
 
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
+{
+	SnakeNode *cur = snake->head;
+	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 255);
+	while (cur)
+	{
+		SDL_Rect rect = {cur->x, cur->y, snake->w, snake->h};
+		if (SDL_RenderFillRect(renderer, &rect) != 0)
+		{
+			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+			return false;
+		}
+		cur = cur->next;
+	}
 
-int main(void)
+	return true;
+}
+
+void PrintGameInfo()
 {
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Print the game's description, Github URL, and version numbers of the game, C, and SDL.
@@ -68,7 +84,170 @@ int main(void)
 	SDL_GetVersion(&linked);
 	SDL_Log("Compiled against SDL version %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
 	SDL_Log("Linking against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
+}
 
+bool Play(SDL_Window *window, SDL_Renderer *renderer)
+{
+
+	int WINDOW_W, WINDOW_H;
+	const int BOX_W = 20, BOX_H = 20;
+
+	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Create the body segment size for snake and food, set play bounds,
+	 * create the player's snake and seed rand.
+	 */
+
+	// set body segment and play bounds
+	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
+	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
+
+	// create player's snake
+	Snake *player = CreateSnake(125, &body, 3, UP);
+	
+	// seed rand
+	srand(SDL_GetTicks());
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Set the food texture PNG path, create food, and give it a random position.
+	 */
+
+	char applePNG[128] = ROOT_DIR;
+	strcat(applePNG, "/images/apple.png");
+
+	body.x = body.y = 0;
+	Food *apple = CreateFood(renderer, APPLE, &body, applePNG);
+
+	RandPosFood(apple, player, &bounds);
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Set time of next player movement, main loop, poll for events!
+	 */
+	
+	// set player mover times
+	player->lastMoveTime = SDL_GetTicks64();
+	player->nextMoveTime = player->lastMoveTime + player->speed;
+
+	// main loop
+	bool isRunning = true;	
+	while (isRunning)
+	{
+		SDL_Event event;
+
+		// clear frame
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+		SDL_RenderClear(renderer);
+
+		// set the earliest time the next frame occurs
+		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
+		
+		// poll events
+		while (SDL_PollEvent(&event))
+		{
+			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
+			{
+				return true;
+			}
+			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
+			{
+				SDL_Keycode pressedKey = event.key.keysym.sym;
+
+				// log the name of pressed key
+				SDL_Log("%s", SDL_GetKeyName(pressedKey));
+
+				if (pressedKey == SDLK_RIGHT && player->currentDirection != LEFT) // pressed right key, skip if direction is left
+				{
+					player->pendingDirection = RIGHT; 
+				}
+				else if (pressedKey == SDLK_UP && player->currentDirection != DOWN) // pressed up key, skip if direction is down
+				{
+					player->pendingDirection = UP; 
+				}
+				else if (pressedKey == SDLK_LEFT && player->currentDirection != RIGHT) // pressed left key, skip if direction is right
+				{
+					player->pendingDirection = LEFT; 
+				}
+				else if (pressedKey == SDLK_DOWN && player->currentDirection != UP) // pressed down key, skip if direction is up
+				{
+					player->pendingDirection = DOWN;
+				}
+			}
+		}
+		
+		// draw snake play area
+		if (SDL_SetRenderDrawColor(renderer, 94, 64, 51, 255) || SDL_RenderFillRect(renderer, &bounds))
+			break;
+
+
+		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		 * Move snake when time has elapsed. If snake eats food, reposition the food and grow snake.
+		 * If the snake hits itself, end game.
+		 */
+
+		Uint64 timeNow = SDL_GetTicks64();
+
+		if (timeNow >= player->nextMoveTime)
+		{
+			// update next move time
+			player->lastMoveTime = player->nextMoveTime;
+			player->nextMoveTime = timeNow + player->speed;
+
+			// store tail position for new tail if snake grows 
+			int xTail = player->tail->x;
+			int yTail = player->tail->y;
+
+			// update the snake's position
+			StepSnake(player, &bounds);
+			
+			// if snake hits itself, end game
+			if (CheckCollisionSnake(player)) 
+			{
+				isRunning = false;
+				SDL_Log("Game Over");
+			}
+ 
+			// if snake eats food, grow snake and move food
+			if (player->head->x == apple->body.x && player->head->y == apple->body.y)
+			{
+				//FIXME add resolution case when snake covers whole map (probably not needed)
+				RandPosFood(apple, player, &bounds);
+				GrowSnake(player, xTail, yTail);
+				SDL_Log("Size: %d", player->size);
+			}
+
+		}
+
+
+		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		 * Draw the fruit, snake, and wait until next frame, draw frame.
+		 */
+
+		if (!(RenderFood(renderer, apple) && RenderSnake(renderer, player)))
+			break;
+		
+		// wait until next frame
+		while (SDL_GetTicks64() < nextFrameTime);
+		
+		// update game state, draw current frame
+		SDL_RenderPresent(renderer);
+		
+	} // main loop end
+	
+	// if you really love them, let them go
+	DestroyFood(apple);
+	DestroySnake(player);
+
+	return false;
+}
+
+
+int main(void)
+{
+	PrintGameInfo();
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Initialize SDL, IMG and register SDL_Quit, IMG_QUIT at exit.
@@ -114,8 +293,6 @@ int main(void)
 
 	const int WINDOW_W = 1280;
 	const int WINDOW_H = 720;
-	const int BOX_W = 20, BOX_H = 20;
-
 
 	// create window
 	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_W, WINDOW_H, 0);
@@ -138,172 +315,16 @@ int main(void)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Create the body segment size for snake and food, set play bounds,
-	 * create the player's snake and seed rand.
+	 *
 	 */
 
+	Play(window, renderer);
 
-	
-	// seed rand
-	srand(SDL_GetTicks());
-
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Set the food texture PNG path, create food, and give it a random position.
-	 */
-
-	char applePNG[128] = ROOT_DIR;
-	strcat(applePNG, "/images/apple.png");
-
-	body.x = body.y = 0;
-	Food *apple = MNYSNKS_CreateFood(renderer, APPLE, &body, applePNG);
-
-	MNYSNKS_RandPosFood(apple, player, &bounds);
-
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Set time of next player movement, main loop, poll for events!
-	 */
-	
-	// set player mover times
-	player->lastMoveTime = SDL_GetTicks64();
-	player->nextMoveTime = player->lastMoveTime + player->speed;
-
-	bool isRunning = true;
-	// main loop	
-	while (isRunning)
-	{
-		SDL_Event event;
-
-		// clear frame
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-		SDL_RenderClear(renderer);
-
-		// set the earliest time the next frame occurs
-		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
-		
-//		while (SDL_PollEvent(&event))
-
-		// poll events
-		while (SDL_PollEvent(&event))
-		{
-			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
-			{
-				isRunning = false;
-				break;
-			}
-			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
-			{
-				SDL_Keycode pressedKey = event.key.keysym.sym;
-
-				// log the name of pressed key
-				SDL_Log("%s", SDL_GetKeyName(pressedKey));
-
-				if (pressedKey == SDLK_RIGHT && player->currentDirection != LEFT) // pressed right key, skip if direction is left
-				{
-					player->pendingDirection = RIGHT; 
-				}
-				else if (pressedKey == SDLK_UP && player->currentDirection != DOWN) // pressed up key, skip if direction is down
-				{
-					player->pendingDirection = UP; 
-				}
-				else if (pressedKey == SDLK_LEFT && player->currentDirection != RIGHT) // pressed left key, skip if direction is right
-				{
-					player->pendingDirection = LEFT; 
-				}
-				else if (pressedKey == SDLK_DOWN && player->currentDirection != UP) // pressed down key, skip if direction is up
-				{
-					player->pendingDirection = DOWN;
-				}
-			}
-
-		}
-		
-		// draw snake play area
-		SDL_SetRenderDrawColor(renderer, 92, 64, 51, 255);
-		SDL_RenderFillRect(renderer, &bounds);
-
-
-		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		 * Move snake when time has elapsed. If snake eats food, reposition the food and grow snake.
-		 * If the snake hits itself, end game.
-		 */
-
-		Uint64 timeNow = SDL_GetTicks64();
-
-		if (timeNow >= player->nextMoveTime)
-		{
-			// update next move time
-			player->lastMoveTime = player->nextMoveTime;
-			player->nextMoveTime = timeNow + player->speed;
-
-			// store tail position for new tail if snake grows 
-			int xTail = player->tail->x;
-			int yTail = player->tail->y;
-
-			// update the snake's position
-			MNYSNKS_StepSnake(player, &bounds);
-			
-			// if snake hits itself, end game
-			if (MNYSNKS_CheckCollisionSnake(player)) 
-			{
-				isRunning = false;
-				SDL_Log("Game Over");
-			}
- 
-			// if snake eats food, grow snake and move food
-			if (player->head->x == apple->body.x && player->head->y == apple->body.y)
-			{
-				//FIXME add resolution case when snake covers whole map (probably not needed)
-				MNYSNKS_RandPosFood(apple, player, &bounds);
-				MNYSNKS_GrowSnake(player, xTail, yTail);
-				SDL_Log("Size: %d", player->size);
-			}
-
-		}
-
-
-		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		 * Draw the fruit, snake, and wait until next frame, draw frame.
-		 */
-
-
-		if (SDL_RenderCopy(renderer, apple->image, NULL, &apple->body) != 0)
-		{
-			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-			isRunning = false;
-		}
-		
-		SnakeNode *cur = player->head;
-		SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 255);
-		while (cur)
-		{
-			SDL_Rect rect = {cur->x, cur->y, player->w, player->h};
-			if (SDL_RenderFillRect(renderer, &rect) != 0)
-			{
-				SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-				isRunning = false;
-			}
-			cur = cur->next;
-		}
-
-		
-		// wait until next frame
-		while (SDL_GetTicks64() < nextFrameTime);
-		
-		// update game state, draw current frame
-		SDL_RenderPresent(renderer);
-		
-	} // main loop end
-	
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Free the player's snake's nodes and destroy renderer, window.
 	 */
 	
-	// if you really love them, let them go
-	// MNYSNKS_DestroyFood(food);
-	MNYSNKS_DestroySnake(player);
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
