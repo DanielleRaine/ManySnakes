@@ -11,34 +11,99 @@
 #include "snake.h"
 
 
-bool RenderFood(SDL_Renderer *renderer, Food *food)
+void PrintGameInfo();
+bool RenderFood(SDL_Renderer *renderer, Food *food);
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake);
+bool Play(SDL_Window *window, SDL_Renderer *renderer);
+bool Pause(SDL_Window *window, SDL_Renderer *renderer);
+
+int main(void)
 {
-	if (SDL_RenderCopy(renderer, food->image, NULL, &food->body) != 0)
+	// print the game's credits and versions
+	PrintGameInfo();
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Initialize SDL, IMG and register SDL_Quit, IMG_QUIT at exit.
+	 */
+
+	// initialize sdl. if error, return 
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-		return false;
+		return 1;
 	}
 
-	return true;	
-}
+	// register sdl shutdown on program closure
+	atexit(SDL_Quit);
 
-bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
-{
-	SnakeNode *cur = snake->head;
-	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 255);
-	while (cur)
+	// initialize img
+	IMG_Init(IMG_INIT_PNG);
+
+	// register img shutdown on program closure
+	atexit(IMG_Quit);
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Get display and window bounds, create a window and renderer.
+	 */
+
+//	// display size struct
+//	SDL_Rect displayBounds;
+//	// get display bounds. if error, return
+//	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
+//	{
+//		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+//		return 1;
+//	}
+//
+//	// window dimensions
+//	const int WINDOW_WIDTH = displayBounds.w * 2 / 3;
+//	const int WINDOW_HEIGHT = displayBounds.h * 2 / 3;
+//
+//	// move distance dimensions
+//	const int MOVE_W = gcd(WINDOW_WIDTH, WINDOW_HEIGHT) / 2;
+//	const int MOVE_H = MOVE_W;
+
+	const int WINDOW_W = 1280;
+	const int WINDOW_H = 720;
+
+	// create window
+	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_W, WINDOW_H, 0);
+	// if window doesn't exist, print error and return
+	if (!window)
 	{
-		SDL_Rect rect = {cur->x, cur->y, snake->w, snake->h};
-		if (SDL_RenderFillRect(renderer, &rect) != 0)
-		{
-			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-			return false;
-		}
-		cur = cur->next;
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		return 1;
 	}
 
-	return true;
+	// create renderer
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	// if render doesn't exist, print error, destroy window and return
+	if (!renderer)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		SDL_DestroyWindow(window);
+		return 1;
+	}
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 *
+	 */
+
+	Play(window, renderer);
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Destroy the renderer and window, then return.
+	 */
+
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+
+	return 0;
 }
+
 
 void PrintGameInfo()
 {
@@ -84,6 +149,35 @@ void PrintGameInfo()
 	SDL_GetVersion(&linked);
 	SDL_Log("Compiled against SDL version %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
 	SDL_Log("Linking against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
+}
+
+bool RenderFood(SDL_Renderer *renderer, Food *food)
+{
+	if (SDL_RenderCopy(renderer, food->image, NULL, &food->body) != 0)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		return false;
+	}
+
+	return true;	
+}
+
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
+{
+	SnakeNode *cur = snake->head;
+	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 255);
+	while (cur)
+	{
+		SDL_Rect rect = {cur->x, cur->y, snake->w, snake->h};
+		if (SDL_RenderFillRect(renderer, &rect) != 0)
+		{
+			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+			return false;
+		}
+		cur = cur->next;
+	}
+
+	return true;
 }
 
 bool Play(SDL_Window *window, SDL_Renderer *renderer)
@@ -150,6 +244,8 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 		{
 			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
 			{
+				DestroyFood(apple);
+				DestroySnake(player);
 				return true;
 			}
 			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
@@ -159,7 +255,16 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 				// log the name of pressed key
 				SDL_Log("%s", SDL_GetKeyName(pressedKey));
 
-				if (pressedKey == SDLK_RIGHT && player->currentDirection != LEFT) // pressed right key, skip if direction is left
+				if (pressedKey == SDLK_ESCAPE)
+				{
+					if (Pause(window, renderer))
+					{
+						DestroyFood(apple);
+						DestroySnake(player);
+						return true;
+					}
+				}
+				else if (pressedKey == SDLK_RIGHT && player->currentDirection != LEFT) // pressed right key, skip if direction is left
 				{
 					player->pendingDirection = RIGHT; 
 				}
@@ -244,90 +349,50 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	return false;
 }
 
+bool Pause(SDL_Window *window, SDL_Renderer *renderer)
+{	
+	int WINDOW_W, WINDOW_H;
+	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
 
-int main(void)
-{
-	PrintGameInfo();
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Initialize SDL, IMG and register SDL_Quit, IMG_QUIT at exit.
-	 */
-
-	// initialize sdl. if error, return 
-	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0)
+	bool isRunning = true;
+	while (isRunning) // main loop
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-		return 1;
+		SDL_Event event;
+
+		// clear frame
+		if (SDL_SetRenderDrawColor(renderer, 255, 255, 255, 125) || SDL_RenderClear(renderer))
+			return true;
+
+		// set the earliest time the next frame occurs
+		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
+		
+		// poll events
+		while (SDL_PollEvent(&event))
+		{
+			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
+			{
+				return true;
+			}
+			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
+			{
+				SDL_Keycode pressedKey = event.key.keysym.sym;
+
+				// log the name of pressed key
+				SDL_Log("%s", SDL_GetKeyName(pressedKey));
+
+				if (pressedKey == SDLK_ESCAPE)
+				{
+					isRunning = false;
+				}
+			}
+		}
+				
+		// wait until next frame
+		while (SDL_GetTicks64() < nextFrameTime);
+		
+		// update game state, draw current frame
+		SDL_RenderPresent(renderer);
 	}
 
-	// register sdl shutdown on program closure
-	atexit(SDL_Quit);
-
-	// initialize img
-	IMG_Init(IMG_INIT_PNG);
-
-	// register img shutdown on program closure
-	atexit(IMG_Quit);
-
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Get display and window bounds, create a window and renderer.
-	 */
-
-//	// display size struct
-//	SDL_Rect displayBounds;
-//	// get display bounds. if error, return
-//	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
-//	{
-//		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-//		return 1;
-//	}
-//
-//	// window dimensions
-//	const int WINDOW_WIDTH = displayBounds.w * 2 / 3;
-//	const int WINDOW_HEIGHT = displayBounds.h * 2 / 3;
-//
-//	// move distance dimensions
-//	const int MOVE_W = gcd(WINDOW_WIDTH, WINDOW_HEIGHT) / 2;
-//	const int MOVE_H = MOVE_W;
-
-	const int WINDOW_W = 1280;
-	const int WINDOW_H = 720;
-
-	// create window
-	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_W, WINDOW_H, 0);
-	// if window doesn't exist, print error and return
-	if (!window)
-	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-		return 1;
-	}
-
-	// create renderer
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	// if render doesn't exist, print error, destroy window and return
-	if (!renderer)
-	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-		SDL_DestroyWindow(window);
-		return 1;
-	}
-
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 *
-	 */
-
-	Play(window, renderer);
-
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Free the player's snake's nodes and destroy renderer, window.
-	 */
-	
-
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
-
-	return 0;
+	return false;
 }
