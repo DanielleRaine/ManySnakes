@@ -12,6 +12,7 @@
 
 
 void PrintGameInfo();
+void PrintError();
 bool RenderFood(SDL_Renderer *renderer, Food *food);
 bool RenderSnake(SDL_Renderer *renderer, Snake *snake);
 bool Play(SDL_Window *window, SDL_Renderer *renderer);
@@ -151,11 +152,17 @@ void PrintGameInfo()
 	SDL_Log("Linking against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
 }
 
+void PrintError()
+{
+	SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+	SDL_ClearError();
+}
+
 bool RenderFood(SDL_Renderer *renderer, Food *food)
 {
 	if (SDL_RenderCopy(renderer, food->image, NULL, &food->body) != 0)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		PrintError();
 		return false;
 	}
 
@@ -171,7 +178,7 @@ bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
 		SDL_Rect rect = {cur->x, cur->y, snake->w, snake->h};
 		if (SDL_RenderFillRect(renderer, &rect) != 0)
 		{
-			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+			PrintError();
 			return false;
 		}
 		cur = cur->next;
@@ -182,12 +189,19 @@ bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
 
 bool Play(SDL_Window *window, SDL_Renderer *renderer)
 {
-
+	// set window and box size
 	int WINDOW_W, WINDOW_H;
+	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
 	const int BOX_W = 20, BOX_H = 20;
 
-	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
+	// create buffer to render to and then from for each frame
+	SDL_Texture *buffer = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_TARGET, WINDOW_W, WINDOW_H);
 
+	if (!buffer || SDL_SetRenderTarget(renderer, buffer) != 0)
+	{
+		PrintError();
+		SDL_DestroyTexture(buffer);
+	}
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Create the body segment size for snake and food, set play bounds,
@@ -246,6 +260,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 			{
 				DestroyFood(apple);
 				DestroySnake(player);
+				SDL_DestroyTexture(buffer);
 				return true;
 			}
 			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
@@ -261,6 +276,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 					{
 						DestroyFood(apple);
 						DestroySnake(player);
+						SDL_DestroyTexture(buffer);
 						return true;
 					}
 				}
@@ -284,8 +300,11 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 		}
 		
 		// draw snake play area
-		if (SDL_SetRenderDrawColor(renderer, 94, 64, 51, 255) || SDL_RenderFillRect(renderer, &bounds))
+		if (SDL_SetRenderDrawColor(renderer, 94, 64, 51, 255) != 0 || SDL_RenderFillRect(renderer, &bounds) != 0)
+		{
+			PrintError();
 			break;
+		}
 
 
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -338,6 +357,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 		while (SDL_GetTicks64() < nextFrameTime);
 		
 		// update game state, draw current frame
+		SDL_RenderCopy(renderer, buffer, NULL, NULL);
 		SDL_RenderPresent(renderer);
 		
 	} // main loop end
