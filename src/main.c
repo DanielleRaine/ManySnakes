@@ -11,20 +11,107 @@
 #include "snake.h"
 
 
-void MNYSNKS_Play(SDL_Window *window, SDL_Renderer *renderer, )
-{
-	int w
+void PrintGameInfo();
+void PrintError();
+bool RenderFood(SDL_Renderer *renderer, Food *food);
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake);
+bool Play(SDL_Window *window, SDL_Renderer *renderer);
+bool Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer);
 
-	// set body segment and play bounds
-	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
-	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
+int main(void)
+{
+	// print the game's credits and versions
+	PrintGameInfo();
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Initialize SDL, IMG and register SDL_Quit, IMG_QUIT at exit.
+	 */
+
+	// initialize sdl. if error, return 
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		return 1;
+	}
+
+	// initialize img
+	IMG_Init(IMG_INIT_PNG);
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Get display and window bounds, create a window and renderer.
+	 */
+
+//	// display size struct
+//	SDL_Rect displayBounds;
+//	// get display bounds. if error, return
+//	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
+//	{
+//		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+//		return 1;
+//	}
+//
+//	// window dimensions
+//	const int WINDOW_WIDTH = displayBounds.w * 2 / 3;
+//	const int WINDOW_HEIGHT = displayBounds.h * 2 / 3;
+//
+//	// move distance dimensions
+//	const int MOVE_W = gcd(WINDOW_WIDTH, WINDOW_HEIGHT) / 2;
+//	const int MOVE_H = MOVE_W;
+
+	const int WINDOW_W = 1280;
+	const int WINDOW_H = 720;
+
+	// create window
+	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_W, WINDOW_H, 0);
+	// if window doesn't exist, print error and return
+	if (!window)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		return 1;
+	}
+
+	// create renderer
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	// if render doesn't exist, print error, destroy window and return
+	if (!renderer || SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) != 0)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		SDL_DestroyWindow(window);
+		return 1;
+	}
+
 	
-	// create player's snake
-	Snake *player = MNYSNKS_CreateSnake(125, &body, 3, UP);
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 *
+	 */
+
+	// seed rand
+	srand(SDL_GetTicks());
+	
+	while (true)
+	{
+		if (!Play(window, renderer))
+			break;
+	}
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Destroy the renderer and window, quit IMG and SDL, then return.
+	 */
+
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+
+	IMG_Quit();
+	SDL_Quit();
+
+	return 0;
 }
 
 
-int main(void)
+void PrintGameInfo()
 {
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Print the game's description, Github URL, and version numbers of the game, C, and SDL.
@@ -68,85 +155,71 @@ int main(void)
 	SDL_GetVersion(&linked);
 	SDL_Log("Compiled against SDL version %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
 	SDL_Log("Linking against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
+}
 
+void PrintError()
+{
+	SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+	SDL_ClearError();
+}
 
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Initialize SDL, IMG and register SDL_Quit, IMG_QUIT at exit.
-	 */
-
-	// initialize sdl. if error, return 
-	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0)
+bool RenderFood(SDL_Renderer *renderer, Food *food)
+{
+	if (SDL_RenderCopy(renderer, food->image, NULL, &food->body) != 0)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-		return 1;
+		PrintError();
+		return false;
 	}
 
-	// register sdl shutdown on program closure
-	atexit(SDL_Quit);
+	return true;	
+}
 
-	// initialize img
-	IMG_Init(IMG_INIT_PNG);
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
+{
+	SnakeNode *cur = snake->head;
+	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 255);
+	while (cur)
+	{
+		SDL_Rect rect = {cur->x, cur->y, snake->w, snake->h};
+		if (SDL_RenderFillRect(renderer, &rect) != 0)
+		{
+			PrintError();
+			return false;
+		}
+		cur = cur->next;
+	}
 
-	// register img shutdown on program closure
-	atexit(IMG_Quit);
+	return true;
+}
 
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Get display and window bounds, create a window and renderer.
-	 */
-
-//	// display size struct
-//	SDL_Rect displayBounds;
-//	// get display bounds. if error, return
-//	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
-//	{
-//		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-//		return 1;
-//	}
-//
-//	// window dimensions
-//	const int WINDOW_WIDTH = displayBounds.w * 2 / 3;
-//	const int WINDOW_HEIGHT = displayBounds.h * 2 / 3;
-//
-//	// move distance dimensions
-//	const int MOVE_W = gcd(WINDOW_WIDTH, WINDOW_HEIGHT) / 2;
-//	const int MOVE_H = MOVE_W;
-
-	const int WINDOW_W = 1280;
-	const int WINDOW_H = 720;
+bool Play(SDL_Window *window, SDL_Renderer *renderer)
+{
+	// set window and box size
+	int WINDOW_W, WINDOW_H;
+	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
 	const int BOX_W = 20, BOX_H = 20;
 
+	// create buffer to render to and then from for each frame
+	SDL_Texture *buffer = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_TARGET, WINDOW_W, WINDOW_H);
 
-	// create window
-	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_W, WINDOW_H, 0);
-	// if window doesn't exist, print error and return
-	if (!window)
+	if (!buffer)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-		return 1;
+		PrintError();
+		return false;
 	}
-
-	// create renderer
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	// if render doesn't exist, print error, destroy window and return
-	if (!renderer)
-	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-		SDL_DestroyWindow(window);
-		return 1;
-	}
-
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Create the body segment size for snake and food, set play bounds,
 	 * create the player's snake and seed rand.
 	 */
 
+	// set body segment and play bounds
+	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
+	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
 
+	// create player's snake
+	Snake *player = CreateSnake(125, &body, 3, UP);
 	
-	// seed rand
-	srand(SDL_GetTicks());
-
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Set the food texture PNG path, create food, and give it a random position.
@@ -156,9 +229,9 @@ int main(void)
 	strcat(applePNG, "/images/apple.png");
 
 	body.x = body.y = 0;
-	Food *apple = MNYSNKS_CreateFood(renderer, APPLE, &body, applePNG);
+	Food *apple = CreateFood(renderer, APPLE, &body, applePNG);
 
-	MNYSNKS_RandPosFood(apple, player, &bounds);
+	RandPosFood(apple, player, &bounds);
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -169,28 +242,39 @@ int main(void)
 	player->lastMoveTime = SDL_GetTicks64();
 	player->nextMoveTime = player->lastMoveTime + player->speed;
 
+	// main loop
 	bool isRunning = true;
-	// main loop	
+	bool isClosed = false;
 	while (isRunning)
 	{
 		SDL_Event event;
+		bool isPaused = false;
+		
+		if (SDL_SetRenderTarget(renderer, buffer) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
 
 		// clear frame
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-		SDL_RenderClear(renderer);
+		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) != 0 || SDL_RenderClear(renderer) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
 
 		// set the earliest time the next frame occurs
-		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
+		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60); //FIXME might change how works in future!
 		
-//		while (SDL_PollEvent(&event))
-
 		// poll events
 		while (SDL_PollEvent(&event))
 		{
 			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
 			{
-				isRunning = false;
-				break;
+				isClosed = true;
+				goto endPlay;
 			}
 			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
 			{
@@ -199,7 +283,11 @@ int main(void)
 				// log the name of pressed key
 				SDL_Log("%s", SDL_GetKeyName(pressedKey));
 
-				if (pressedKey == SDLK_RIGHT && player->currentDirection != LEFT) // pressed right key, skip if direction is left
+				if (pressedKey == SDLK_ESCAPE)
+				{
+					isPaused = true;
+				}
+				else if (pressedKey == SDLK_RIGHT && player->currentDirection != LEFT) // pressed right key, skip if direction is left
 				{
 					player->pendingDirection = RIGHT; 
 				}
@@ -216,12 +304,15 @@ int main(void)
 					player->pendingDirection = DOWN;
 				}
 			}
-
 		}
 		
 		// draw snake play area
-		SDL_SetRenderDrawColor(renderer, 92, 64, 51, 255);
-		SDL_RenderFillRect(renderer, &bounds);
+		if (SDL_SetRenderDrawColor(renderer, 94, 64, 51, 255) != 0 || SDL_RenderFillRect(renderer, &bounds) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
 
 
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -242,10 +333,10 @@ int main(void)
 			int yTail = player->tail->y;
 
 			// update the snake's position
-			MNYSNKS_StepSnake(player, &bounds);
+			StepSnake(player, &bounds);
 			
 			// if snake hits itself, end game
-			if (MNYSNKS_CheckCollisionSnake(player)) 
+			if (CheckCollisionSnake(player)) 
 			{
 				isRunning = false;
 				SDL_Log("Game Over");
@@ -255,8 +346,8 @@ int main(void)
 			if (player->head->x == apple->body.x && player->head->y == apple->body.y)
 			{
 				//FIXME add resolution case when snake covers whole map (probably not needed)
-				MNYSNKS_RandPosFood(apple, player, &bounds);
-				MNYSNKS_GrowSnake(player, xTail, yTail);
+				RandPosFood(apple, player, &bounds);
+				GrowSnake(player, xTail, yTail);
 				SDL_Log("Size: %d", player->size);
 			}
 
@@ -267,46 +358,125 @@ int main(void)
 		 * Draw the fruit, snake, and wait until next frame, draw frame.
 		 */
 
-
-		if (SDL_RenderCopy(renderer, apple->image, NULL, &apple->body) != 0)
+		if (!(RenderFood(renderer, apple) && RenderSnake(renderer, player)))
 		{
-			SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-			isRunning = false;
-		}
+			isClosed = true;
+			break;
+		}	
 		
-		SnakeNode *cur = player->head;
-		SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 255);
-		while (cur)
+		// draw current frame
+		if (SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL) != 0)
 		{
-			SDL_Rect rect = {cur->x, cur->y, player->w, player->h};
-			if (SDL_RenderFillRect(renderer, &rect) != 0)
-			{
-				SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-				isRunning = false;
-			}
-			cur = cur->next;
+			PrintError();
+			isClosed = true;
+			break;
 		}
 
-		
-		// wait until next frame
+		// wait and present next frame
 		while (SDL_GetTicks64() < nextFrameTime);
-		
-		// update game state, draw current frame
 		SDL_RenderPresent(renderer);
 		
+		if (isPaused && !Pause(window, renderer, buffer))
+		{
+			isClosed = true;
+			break;
+		}
 	} // main loop end
 	
-
-	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Free the player's snake's nodes and destroy renderer, window.
-	 */
-	
+endPlay:
 	// if you really love them, let them go
-	// MNYSNKS_DestroyFood(food);
-	MNYSNKS_DestroySnake(player);
+	DestroyFood(apple);
+	DestroySnake(player);
+	SDL_DestroyTexture(buffer);
 
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
+	return !isClosed;
+}
 
-	return 0;
+bool Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
+{	
+	int WINDOW_W, WINDOW_H;
+	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
+	
+	if (SDL_SetTextureBlendMode(buffer, SDL_BLENDMODE_BLEND) != 0 || SDL_SetTextureAlphaMod(buffer, 75) != 0)
+	{
+		PrintError();
+		return false;
+	}
+
+	bool isRunning = true;
+	bool isClosed = false;
+	while (isRunning) // main loop
+	{
+		SDL_Event event;
+
+		// clear frame
+		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) != 0 || SDL_RenderClear(renderer) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
+		
+		// set the earliest time the next frame occurs
+		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
+		
+		// poll events
+		while (SDL_PollEvent(&event))
+		{
+			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
+			{
+				isClosed = true;
+				goto endPause;
+			}
+			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
+			{
+				SDL_Keycode pressedKey = event.key.keysym.sym;
+
+				// log the name of pressed key
+				SDL_Log("%s", SDL_GetKeyName(pressedKey));
+
+				if (pressedKey == SDLK_ESCAPE)
+				{
+					isRunning = false;
+				}
+			}
+		}
+		
+		if (SDL_SetRenderTarget(renderer, buffer) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
+		
+
+
+		// draw current frame
+		if (SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL))
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
+				
+		// wait and present next frame
+		while (SDL_GetTicks64() < nextFrameTime);
+		SDL_RenderPresent(renderer);
+	}
+
+endPause:
+	
+	if (SDL_SetTextureBlendMode(buffer, SDL_BLENDMODE_NONE) != 0 || SDL_SetTextureAlphaMod(buffer, 0xFF) != 0)
+	{
+		PrintError();
+		isClosed = true;
+	}
+	
+	if (SDL_SetRenderTarget(renderer, NULL) != 0)
+	{
+		PrintError();
+		isClosed = true;
+	}
+	
+	return !isClosed;
 }

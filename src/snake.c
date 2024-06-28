@@ -1,7 +1,7 @@
 #include "snake.h"
 
 
-Snake *MNYSNKS_CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction)
+Snake *CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction)
 {
 	// a snake cannot have zero size. if less than 1, return NULL
 	if (size < 1)
@@ -22,8 +22,8 @@ Snake *MNYSNKS_CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction dir
     	snake->head = snake->tail = malloc(sizeof(SnakeNode));    
     	snake->head->x = body->x;
     	snake->head->y = body->y;
-
-
+	snake->size = size;
+	
 	// create the rest of the snake
     	for (int i = 1; i < size; ++i)
     	{
@@ -37,7 +37,7 @@ Snake *MNYSNKS_CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction dir
     	return snake;
 }
 
-void MNYSNKS_StepSnake(Snake *snake, SDL_Rect *bounds)
+void StepSnake(Snake *snake, SDL_Rect *bounds)
 {
     	snake->currentDirection = snake->pendingDirection;
     	int xDelta, yDelta;
@@ -101,7 +101,7 @@ void MNYSNKS_StepSnake(Snake *snake, SDL_Rect *bounds)
     	}
 }
 
-void MNYSNKS_GrowSnake(Snake *snake, int x, int y)
+void GrowSnake(Snake *snake, int x, int y)
 {
 	snake->tail->next = malloc(sizeof(SnakeNode));
 	snake->tail = snake->tail->next;
@@ -111,7 +111,7 @@ void MNYSNKS_GrowSnake(Snake *snake, int x, int y)
 	++snake->size;
 }
 
-bool MNYSNKS_CheckCollisionSnake(Snake *snake)
+bool CheckCollisionSnake(Snake *snake)
 {
 	// a snake of less than 5 nodes cannot collide with itself
 	if (snake->size < 5)
@@ -135,7 +135,7 @@ bool MNYSNKS_CheckCollisionSnake(Snake *snake)
 	return false;
 }
 
-void MNYSNKS_DestroySnake(Snake *snake)
+void DestroySnake(Snake *snake)
 {
 	// loop through every SnakeNode and free it
     	while (snake->head)
@@ -149,7 +149,7 @@ void MNYSNKS_DestroySnake(Snake *snake)
     	free(snake);
 }
 
-Food *MNYSNKS_CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const char *filepath)
+Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const char *filepath)
 {
 	Food *food = malloc(sizeof(Food));
 	food->type = type;
@@ -165,10 +165,8 @@ Food *MNYSNKS_CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, 
 	return food;
 }
 
-void MNYSNKS_RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
+void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
 {
-	srand(SDL_GetTicks());
-
 	bool validPos = false;
 	while (!validPos)
 	{
@@ -192,7 +190,7 @@ void MNYSNKS_RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
 	}
 }
 
-void MNYSNKS_DestroyFood(Food *food)
+void DestroyFood(Food *food)
 {
 	SDL_DestroyTexture(food->image);
 	free(food);
