@@ -16,7 +16,7 @@ void PrintError();
 bool RenderFood(SDL_Renderer *renderer, Food *food);
 bool RenderSnake(SDL_Renderer *renderer, Snake *snake);
 bool Play(SDL_Window *window, SDL_Renderer *renderer);
-bool Pause(SDL_Window *window, SDL_Renderer *renderer);
+bool Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer);
 
 int main(void)
 {
@@ -34,14 +34,8 @@ int main(void)
 		return 1;
 	}
 
-	// register sdl shutdown on program closure
-	atexit(SDL_Quit);
-
 	// initialize img
 	IMG_Init(IMG_INIT_PNG);
-
-	// register img shutdown on program closure
-	atexit(IMG_Quit);
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,27 +74,38 @@ int main(void)
 	// create renderer
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	// if render doesn't exist, print error, destroy window and return
-	if (!renderer)
+	if (!renderer || SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) != 0)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
 		SDL_DestroyWindow(window);
 		return 1;
 	}
 
+	
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 *
 	 */
 
-	Play(window, renderer);
+	// seed rand
+	srand(SDL_GetTicks());
+	
+	while (true)
+	{
+		if (!Play(window, renderer))
+			break;
+	}
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Destroy the renderer and window, then return.
+	 * Destroy the renderer and window, quit IMG and SDL, then return.
 	 */
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
+
+	IMG_Quit();
+	SDL_Quit();
 
 	return 0;
 }
@@ -197,10 +202,10 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	// create buffer to render to and then from for each frame
 	SDL_Texture *buffer = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_TARGET, WINDOW_W, WINDOW_H);
 
-	if (!buffer || SDL_SetRenderTarget(renderer, buffer) != 0)
+	if (!buffer)
 	{
 		PrintError();
-		SDL_DestroyTexture(buffer);
+		return false;
 	}
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -215,9 +220,6 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	// create player's snake
 	Snake *player = CreateSnake(125, &body, 3, UP);
 	
-	// seed rand
-	srand(SDL_GetTicks());
-
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Set the food texture PNG path, create food, and give it a random position.
@@ -241,27 +243,38 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	player->nextMoveTime = player->lastMoveTime + player->speed;
 
 	// main loop
-	bool isRunning = true;	
+	bool isRunning = true;
+	bool isClosed = false;
 	while (isRunning)
 	{
 		SDL_Event event;
+		bool isPaused = false;
+		
+		if (SDL_SetRenderTarget(renderer, buffer) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
 
 		// clear frame
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-		SDL_RenderClear(renderer);
+		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) != 0 || SDL_RenderClear(renderer) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
 
 		// set the earliest time the next frame occurs
-		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
+		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60); //FIXME might change how works in future!
 		
 		// poll events
 		while (SDL_PollEvent(&event))
 		{
 			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
 			{
-				DestroyFood(apple);
-				DestroySnake(player);
-				SDL_DestroyTexture(buffer);
-				return true;
+				isClosed = true;
+				goto endPlay;
 			}
 			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
 			{
@@ -272,13 +285,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 
 				if (pressedKey == SDLK_ESCAPE)
 				{
-					if (Pause(window, renderer))
-					{
-						DestroyFood(apple);
-						DestroySnake(player);
-						SDL_DestroyTexture(buffer);
-						return true;
-					}
+					isPaused = true;
 				}
 				else if (pressedKey == SDLK_RIGHT && player->currentDirection != LEFT) // pressed right key, skip if direction is left
 				{
@@ -303,6 +310,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 		if (SDL_SetRenderDrawColor(renderer, 94, 64, 51, 255) != 0 || SDL_RenderFillRect(renderer, &bounds) != 0)
 		{
 			PrintError();
+			isClosed = true;
 			break;
 		}
 
@@ -351,38 +359,64 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 		 */
 
 		if (!(RenderFood(renderer, apple) && RenderSnake(renderer, player)))
+		{
+			isClosed = true;
 			break;
+		}	
 		
-		// wait until next frame
+		// draw current frame
+		if (SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
+
+		// wait and present next frame
 		while (SDL_GetTicks64() < nextFrameTime);
-		
-		// update game state, draw current frame
-		SDL_RenderCopy(renderer, buffer, NULL, NULL);
 		SDL_RenderPresent(renderer);
 		
+		if (isPaused && !Pause(window, renderer, buffer))
+		{
+			isClosed = true;
+			break;
+		}
 	} // main loop end
 	
+endPlay:
 	// if you really love them, let them go
 	DestroyFood(apple);
 	DestroySnake(player);
+	SDL_DestroyTexture(buffer);
 
-	return false;
+	return !isClosed;
 }
 
-bool Pause(SDL_Window *window, SDL_Renderer *renderer)
+bool Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 {	
 	int WINDOW_W, WINDOW_H;
 	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
+	
+	if (SDL_SetTextureBlendMode(buffer, SDL_BLENDMODE_BLEND) != 0 || SDL_SetTextureAlphaMod(buffer, 75) != 0)
+	{
+		PrintError();
+		return false;
+	}
 
 	bool isRunning = true;
+	bool isClosed = false;
 	while (isRunning) // main loop
 	{
 		SDL_Event event;
 
 		// clear frame
-		if (SDL_SetRenderDrawColor(renderer, 255, 255, 255, 125) || SDL_RenderClear(renderer))
-			return true;
-
+		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) != 0 || SDL_RenderClear(renderer) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
+		
 		// set the earliest time the next frame occurs
 		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
 		
@@ -391,7 +425,8 @@ bool Pause(SDL_Window *window, SDL_Renderer *renderer)
 		{
 			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
 			{
-				return true;
+				isClosed = true;
+				goto endPause;
 			}
 			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
 			{
@@ -406,13 +441,42 @@ bool Pause(SDL_Window *window, SDL_Renderer *renderer)
 				}
 			}
 		}
-				
-		// wait until next frame
-		while (SDL_GetTicks64() < nextFrameTime);
 		
-		// update game state, draw current frame
+		if (SDL_SetRenderTarget(renderer, buffer) != 0)
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
+		
+
+
+		// draw current frame
+		if (SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL))
+		{
+			PrintError();
+			isClosed = true;
+			break;
+		}
+				
+		// wait and present next frame
+		while (SDL_GetTicks64() < nextFrameTime);
 		SDL_RenderPresent(renderer);
 	}
 
-	return false;
+endPause:
+	
+	if (SDL_SetTextureBlendMode(buffer, SDL_BLENDMODE_NONE) != 0 || SDL_SetTextureAlphaMod(buffer, 0xFF) != 0)
+	{
+		PrintError();
+		isClosed = true;
+	}
+	
+	if (SDL_SetRenderTarget(renderer, NULL) != 0)
+	{
+		PrintError();
+		isClosed = true;
+	}
+	
+	return !isClosed;
 }

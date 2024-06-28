@@ -22,8 +22,8 @@ Snake *CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction)
     	snake->head = snake->tail = malloc(sizeof(SnakeNode));    
     	snake->head->x = body->x;
     	snake->head->y = body->y;
-
-
+	snake->size = size;
+	
 	// create the rest of the snake
     	for (int i = 1; i < size; ++i)
     	{
@@ -167,8 +167,6 @@ Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const ch
 
 void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
 {
-	srand(SDL_GetTicks());
-
 	bool validPos = false;
 	while (!validPos)
 	{
