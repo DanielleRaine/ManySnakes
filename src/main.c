@@ -1,4 +1,5 @@
 /* ManySnakes by Danielle Raine
+ * Created June 6th, 2024
  */
 
 #include "config.h"
@@ -8,13 +9,14 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 #include "snake.h"
-
 
 void PrintGameInfo();
 void PrintError();
 bool RenderFood(SDL_Renderer *renderer, Food *food);
 bool RenderSnake(SDL_Renderer *renderer, Snake *snake);
+// bool MainMenu(SDL_Window *window, SDL_Renderer *renderer);
 bool Play(SDL_Window *window, SDL_Renderer *renderer);
 bool Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer);
 
@@ -24,13 +26,13 @@ int main(void)
 	PrintGameInfo();
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Initialize SDL, IMG and register SDL_Quit, IMG_QUIT at exit.
+	 * Initialize SDL, IMG, and TTF.
 	 */
 
-	// initialize sdl. if error, return 
-	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0)
+	// initialize sdl and ttf. if error, return 
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0 || TTF_Init() != 0)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		PrintError();
 		return 1;
 	}
 
@@ -67,7 +69,7 @@ int main(void)
 	// if window doesn't exist, print error and return
 	if (!window)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		PrintError();
 		return 1;
 	}
 
@@ -76,7 +78,7 @@ int main(void)
 	// if render doesn't exist, print error, destroy window and return
 	if (!renderer || SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) != 0)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		PrintError();
 		SDL_DestroyWindow(window);
 		return 1;
 	}
@@ -84,7 +86,7 @@ int main(void)
 	
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 *
+	 * Seed rand and begin main loop.
 	 */
 
 	// seed rand
@@ -98,13 +100,14 @@ int main(void)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Destroy the renderer and window, quit IMG and SDL, then return.
+	 * Destroy renderer and window, quit IMG and SDL, then return.
 	 */
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 
 	IMG_Quit();
+	TTF_Quit();
 	SDL_Quit();
 
 	return 0;
