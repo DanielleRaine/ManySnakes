@@ -16,7 +16,7 @@ void PrintGameInfo();
 void PrintError();
 bool RenderFood(SDL_Renderer *renderer, Food *food);
 bool RenderSnake(SDL_Renderer *renderer, Snake *snake);
-// bool MainMenu(SDL_Window *window, SDL_Renderer *renderer);
+void MainMenu(SDL_Window *window, SDL_Renderer *renderer);
 bool Play(SDL_Window *window, SDL_Renderer *renderer);
 bool Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer);
 
@@ -75,7 +75,7 @@ int main(void)
 
 	// create renderer
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	// if render doesn't exist, print error, destroy window and return
+	// if renderer doesn't exist, print error, destroy window and return
 	if (!renderer || SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) != 0)
 	{
 		PrintError();
@@ -92,10 +92,10 @@ int main(void)
 	// seed rand
 	srand(SDL_GetTicks());
 	
-	while (true)
+	bool isRunning = true;
+	while (isRunning)
 	{
-		if (!Play(window, renderer))
-			break;
+
 	}
 
 
@@ -180,7 +180,7 @@ bool RenderFood(SDL_Renderer *renderer, Food *food)
 bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
 {
 	SnakeNode *cur = snake->head;
-	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 255);
+	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 0xFF);
 	while (cur)
 	{
 		SDL_Rect rect = {cur->x, cur->y, snake->w, snake->h};
@@ -195,16 +195,55 @@ bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
 	return true;
 }
 
+void MainMenu(SDL_Window *window, SDL_Renderer *renderer)
+{
+	const int WINDOW_W, WINDOW_H;
+	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
+	const int BOX_W = 20, BOX_H = 20;
+
+	Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
+
+	bool isRunning = true;
+	while (isRunning)
+	{
+		SDL_Event event;
+		while (SDL_PollEvent(&event))
+		{
+			switch (event.type)
+			{
+				case SDL_QUIT:
+					return;
+					break;
+				case SDL_KEYDOWN:
+					SDL_Log("Key pressed!");
+					break;
+				default:
+					break;
+			}
+		}
+
+		Uint64 currentTime = SDL_GetTicks64();
+		if (currentTime >= nextFrameTime)
+		{
+			nextFrameTime = currentTime + (1000 / 60);
+			SDL_RenderPresent(renderer);
+			if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) != 0 || SDL_RenderClear(renderer) != 0)
+			{
+				PrintError();
+			}
+		}
+	}
+}
+
 bool Play(SDL_Window *window, SDL_Renderer *renderer)
 {
-	// set window and box size
+	// get window and box size
 	int WINDOW_W, WINDOW_H;
 	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
 	const int BOX_W = 20, BOX_H = 20;
 
-	// create buffer to render to and then from for each frame
+	// create frame buffer
 	SDL_Texture *buffer = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_TARGET, WINDOW_W, WINDOW_H);
-
 	if (!buffer)
 	{
 		PrintError();
@@ -212,8 +251,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	}
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Create the body segment size for snake and food, set play bounds,
-	 * create the player's snake and seed rand.
+	 * Create the body segment size for snake and food, set play bounds, create the player's snake.
 	 */
 
 	// set body segment and play bounds
