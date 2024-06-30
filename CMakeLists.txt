@@ -37,6 +37,7 @@ add_executable(ManySnakes
 	src/main.c
 	src/math.c
 	src/snake.c
+	src/textbox.c
 )
 
 # specify where executable target should look for include files

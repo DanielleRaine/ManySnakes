@@ -10,7 +10,7 @@
  * Declare Direction and FoodType enums.
  */
 
-// describes the directions that snakes can take
+// directions that snakes can take
 typedef enum
 {
    	RIGHT = 'r',
@@ -19,7 +19,7 @@ typedef enum
    	DOWN = 'd'
 } Direction;
 
-// describes the different types of foods that can appear
+// different types of foods that can appear
 typedef enum
 {
     	APPLE = 'a'
@@ -39,7 +39,7 @@ typedef struct SnakeNode
 } SnakeNode;
 
 // snake container struct that holds overall properties and the head SnakeNode
-typedef struct 
+typedef struct Snake
 {
     	SnakeNode *head, *tail;
     	Uint64 speed;	// in units of milliseconds per block
@@ -52,7 +52,7 @@ typedef struct
 } Snake;
 
 // food for the snake to eat!!
-typedef struct
+typedef struct Food
 {
     	FoodType type;
     	SDL_Rect body;

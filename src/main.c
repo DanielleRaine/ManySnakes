@@ -11,6 +11,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include "snake.h"
+#include "textbox.h"
 
 void PrintGameInfo();
 void PrintError();
@@ -91,12 +92,8 @@ int main(void)
 
 	// seed rand
 	srand(SDL_GetTicks());
-	
-	bool isRunning = true;
-	while (isRunning)
-	{
 
-	}
+	MainMenu(window, renderer);	
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -197,39 +194,85 @@ bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
 
 void MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 {
-	const int WINDOW_W, WINDOW_H;
+	// get window and box size
+	int WINDOW_W, WINDOW_H;
 	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
-	const int BOX_W = 20, BOX_H = 20;
+	// const int BOX_W = 20, BOX_H = 20;
 
+	// initial clear frame
+	if (SDL_SetRenderDrawColor(renderer, 0x40, 0x40, 0x00, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
+	{
+		PrintError();
+		return;
+	}
+
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 *
+	 */
+
+	char fontpath[128] = ROOT_DIR;
+	SDL_Log("%s", fontpath);
+	strcat(fontpath, "/Roboto_Mono/RobotoMono-VariableFont_wght.ttf");
+	TTF_Font *font = TTF_OpenFont(fontpath, 50);
+	SDL_Rect body = {WINDOW_W / 2 - 200, WINDOW_H / 8, 400, 100};
+	SDL_Color color = {0xFF, 0xFF, 0xFF, 0xFF};
+	TextBox *textbox = CreateTextBox(renderer, &body, "ManySnakes", font, &color);
+
+	if (!textbox)
+	{
+		PrintError();
+		return;
+	}
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 *
+	 */
+
+	// set the next time a frame is presented
 	Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
-
+	
 	bool isRunning = true;
 	while (isRunning)
 	{
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
-			switch (event.type)
+			if (SDL_QUIT == event.type)
+			{ 
+				// window is closed
+				DestroyTextBox(textbox);
+				TTF_CloseFont(font);
+				return;
+			}
+			else if (SDL_KEYDOWN == event.type)
 			{
-				case SDL_QUIT:
-					return;
-					break;
-				case SDL_KEYDOWN:
-					SDL_Log("Key pressed!");
-					break;
-				default:
-					break;
+				// key pressed down
+				SDL_Log("Key pressed!");
+				SDL_Keycode key = event.key.keysym.sym;
+				if (SDLK_RETURN == key)
+				{
+					if (!Play(window, renderer))
+					{
+						// closing program
+						return;
+					}
+				}
 			}
 		}
 
+		RenderTextBox(renderer, textbox);
+
+		// display next frame once the next frame time is reached
 		Uint64 currentTime = SDL_GetTicks64();
-		if (currentTime >= nextFrameTime)
+		if (currentTime >= nextFrameTime) 
 		{
 			nextFrameTime = currentTime + (1000 / 60);
 			SDL_RenderPresent(renderer);
-			if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) != 0 || SDL_RenderClear(renderer) != 0)
+			if (SDL_SetRenderDrawColor(renderer, 0x5F, 0x00, 0xFF, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
 			{
 				PrintError();
+				return;
 			}
 		}
 	}
@@ -251,10 +294,10 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	}
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Create the body segment size for snake and food, set play bounds, create the player's snake.
+	 * Create the body size for snake and food, set play bounds, create the player's snake.
 	 */
 
-	// set body segment and play bounds
+	// set body size and play bounds
 	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
 	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
 
@@ -279,11 +322,11 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	 * Set time of next player movement, main loop, poll for events!
 	 */
 	
-	// set player mover times
+	// set player move times
 	player->lastMoveTime = SDL_GetTicks64();
 	player->nextMoveTime = player->lastMoveTime + player->speed;
 
-	// main loop
+	// play main loop
 	bool isRunning = true;
 	bool isClosed = false;
 	while (isRunning)
@@ -291,6 +334,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 		SDL_Event event;
 		bool isPaused = false;
 		
+		// set buffer as render target
 		if (SDL_SetRenderTarget(renderer, buffer) != 0)
 		{
 			PrintError();
@@ -418,7 +462,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 		SDL_RenderPresent(renderer);
 		
 		if (isPaused && !Pause(window, renderer, buffer))
-		{
+		{	//FIXME Snake moves immediately after unpause if enough time elapsed during pause instead of during game
 			isClosed = true;
 			break;
 		}
