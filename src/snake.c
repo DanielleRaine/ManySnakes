@@ -1,7 +1,7 @@
 #include "snake.h"
 
 
-Snake *CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction)
+Snake *CreateSnake(Uint64 speed, SDL_Rect *box, int size, Direction direction)
 {
 	// a snake cannot have zero size. if less than 1, return NULL
 	if (size < 1)
@@ -15,13 +15,13 @@ Snake *CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction)
 	snake->currentDirection = snake->pendingDirection = direction;
 
 	// set shape of each SnakeNode
-	snake->w = body->w;
-	snake->h = body->h;
+	snake->w = box->w;
+	snake->h = box->h;
 
 	// create snake head and set starting position and size of each node
     	snake->head = snake->tail = malloc(sizeof(SnakeNode));    
-    	snake->head->x = body->x;
-    	snake->head->y = body->y;
+    	snake->head->x = box->x;
+    	snake->head->y = box->y;
 	snake->size = size;
 	
 	// create the rest of the snake
@@ -88,7 +88,7 @@ void StepSnake(Snake *snake, SDL_Rect *bounds)
     	    	yNext = bounds->y;
     	}
 
-    	// update body of the snake to move it
+    	// update each node of snake to move it
     	while (cur)
     	{
     	    	int xLast = cur->x;
@@ -149,7 +149,7 @@ void DestroySnake(Snake *snake)
     	free(snake);
 }
 
-Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const char *filepath)
+Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *box, const char *filepath)
 {
 	Food *food = malloc(sizeof(Food));
 	food->type = type;
@@ -160,7 +160,7 @@ Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const ch
 		return NULL;
 	}
 
-	food->body = *body;
+	food->box = *box;
 
 	return food;
 }
@@ -171,15 +171,15 @@ void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
 	while (!validPos)
 	{
 		// get a random x and y position in a grid layout
-		food->body.x = rand() % (bounds->w / food->body.w) * food->body.w + bounds->x;
-		food->body.y = rand() % (bounds->h / food->body.h) * food->body.h + bounds->y;
+		food->box.x = rand() % (bounds->w / food->box.w) * food->box.w + bounds->x;
+		food->box.y = rand() % (bounds->h / food->box.h) * food->box.h + bounds->y;
 
 		validPos = true;
 		SnakeNode *cur = snake->head;
 		while(cur)
 		{
 			// if the food exists in the same place as the snake, find new random position
-			if (food->body.x == cur->x && food->body.y == cur->y)
+			if (food->box.x == cur->x && food->box.y == cur->y)
 			{
 				validPos = false;
 				break;

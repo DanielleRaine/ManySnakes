@@ -1,6 +1,6 @@
 #include "textbox.h"
 
-TextBox *CreateTextBox(SDL_Renderer *renderer, SDL_Rect *body, const char *text, TTF_Font *font, SDL_Color *color)
+TextBox *CreateTextBox(SDL_Renderer *renderer, SDL_Rect *box, const char *text, TTF_Font *font, SDL_Color *color)
 {
 	TextBox *textbox = malloc(sizeof(TextBox));
 	if (!textbox)
@@ -27,14 +27,14 @@ TextBox *CreateTextBox(SDL_Renderer *renderer, SDL_Rect *body, const char *text,
 	}
 
 	SDL_FreeSurface(surface);
-	textbox->body = *body;
+	textbox->box = *box;
 
 	return textbox;
 }
 
 bool RenderTextBox(SDL_Renderer *renderer, TextBox *textbox)
 {
-	if (SDL_RenderCopy(renderer, textbox->texture, NULL, &textbox->body))
+	if (SDL_RenderCopy(renderer, textbox->texture, NULL, &textbox->box))
 	{
 		SDL_SetError("Failed to render textbox :c (render)");
 		return false;

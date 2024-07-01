@@ -55,17 +55,17 @@ typedef struct Snake
 typedef struct Food
 {
     	FoodType type;
-    	SDL_Rect body;
+    	SDL_Rect box;
     	SDL_Texture *image;	// image of the food
 } Food;
 
-Snake *CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction);
+Snake *CreateSnake(Uint64 speed, SDL_Rect *box, int size, Direction direction);
 void StepSnake(Snake *snake, SDL_Rect *bounds);
 void GrowSnake(Snake *snake, int x, int y);
 bool CheckCollisionSnake(Snake *snake);
 void DestroySnake(Snake *snake);
 
-Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const char *filepath);
+Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *box, const char *filepath);
 void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds);
 void DestroyFood(Food *food);
 

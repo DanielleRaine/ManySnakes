@@ -165,7 +165,7 @@ void PrintError()
 
 bool RenderFood(SDL_Renderer *renderer, Food *food)
 {
-	if (SDL_RenderCopy(renderer, food->image, NULL, &food->body) != 0)
+	if (SDL_RenderCopy(renderer, food->image, NULL, &food->box) != 0)
 	{
 		PrintError();
 		return false;
@@ -215,9 +215,9 @@ void MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 	SDL_Log("%s", fontpath);
 	strcat(fontpath, "/Roboto_Mono/RobotoMono-VariableFont_wght.ttf");
 	TTF_Font *font = TTF_OpenFont(fontpath, 50);
-	SDL_Rect body = {WINDOW_W / 2 - 200, WINDOW_H / 8, 400, 100};
+	SDL_Rect box = {WINDOW_W / 2 - 200, WINDOW_H / 8, 400, 100};
 	SDL_Color color = {0xFF, 0xFF, 0xFF, 0xFF};
-	TextBox *textbox = CreateTextBox(renderer, &body, "ManySnakes", font, &color);
+	TextBox *textbox = CreateTextBox(renderer, &box, "ManySnakes", font, &color);
 
 	if (!textbox)
 	{
@@ -294,15 +294,15 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	}
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Create the body size for snake and food, set play bounds, create the player's snake.
+	 * Create the box size for snake and food, set play bounds, create the player's snake.
 	 */
 
-	// set body size and play bounds
-	SDL_Rect body = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
+	// set box size and play bounds
+	SDL_Rect box = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
 	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
 
 	// create player's snake
-	Snake *player = CreateSnake(125, &body, 3, UP);
+	Snake *player = CreateSnake(125, &box, 3, UP);
 	
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -312,8 +312,8 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 	char applePNG[128] = ROOT_DIR;
 	strcat(applePNG, "/images/apple.png");
 
-	body.x = body.y = 0;
-	Food *apple = CreateFood(renderer, APPLE, &body, applePNG);
+	box.x = box.y = 0;
+	Food *apple = CreateFood(renderer, APPLE, &box, applePNG);
 
 	RandPosFood(apple, player, &bounds);
 
@@ -428,7 +428,7 @@ bool Play(SDL_Window *window, SDL_Renderer *renderer)
 			}
  
 			// if snake eats food, grow snake and move food
-			if (player->head->x == apple->body.x && player->head->y == apple->body.y)
+			if (player->head->x == apple->box.x && player->head->y == apple->box.y)
 			{
 				//FIXME add resolution case when snake covers whole map (probably not needed)
 				RandPosFood(apple, player, &bounds);
