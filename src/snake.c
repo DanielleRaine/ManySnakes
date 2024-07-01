@@ -135,6 +135,23 @@ bool CheckCollisionSnake(Snake *snake)
 	return false;
 }
 
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
+{
+	SnakeNode *cur = snake->head;
+	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 0xFF);
+	while (cur)
+	{
+		SDL_Rect rect = {cur->x, cur->y, snake->w, snake->h};
+		if (SDL_RenderFillRect(renderer, &rect) != 0)
+		{
+			return false;
+		}
+		cur = cur->next;
+	}
+
+	return true;
+}
+
 void DestroySnake(Snake *snake)
 {
 	// loop through every SnakeNode and free it
@@ -188,6 +205,16 @@ void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
 			cur = cur->next;
 		}
 	}
+}
+
+bool RenderFood(SDL_Renderer *renderer, Food *food)
+{
+	if (SDL_RenderCopy(renderer, food->image, NULL, &food->box) != 0)
+	{
+		return false;
+	}
+
+	return true;	
 }
 
 void DestroyFood(Food *food)
