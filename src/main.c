@@ -94,7 +94,7 @@ int main(void)
 	srand(SDL_GetTicks());
 
 	int returnCode = MainMenu(window, renderer);	
-	printf("%d", returnCode);
+	printf("Exit MainMenu: %d", returnCode);
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Destroy renderer and window, quit IMG and SDL, then return.
@@ -266,7 +266,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 				if (SDLK_RETURN == key)
 				{
 					returnCode = Play(window, renderer);
-					SDL_Log("%d", returnCode);
+					SDL_Log("Exit Play: %d", returnCode);
 					if (returnCode != 0)
 						break;
 				}
@@ -495,7 +495,8 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 		if (isPaused)
 		{	//FIXME Snake moves immediately after unpause if enough time elapsed during pause instead of during game
 			Uint64 timeBeforePause = SDL_GetTicks64();
-			int returnCode = Pause(window, renderer, buffer);
+			returnCode = Pause(window, renderer, buffer);
+			SDL_Log("Exit Pause: %d", returnCode);
 			if (returnCode == 0)
 			{
 				player->nextMoveTime += SDL_GetTicks64() - timeBeforePause;
@@ -510,7 +511,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 			}
 		}
 	} // play loop end
-	
+		
 	DestroyFood(apple);
 	DestroySnake(player);
 	SDL_DestroyTexture(buffer);
@@ -571,7 +572,9 @@ int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 		}
 
 		if (returnCode != 0)
+		{
 			break;
+		}
 		
 		// draw frame
 		if (SDL_SetRenderTarget(renderer, buffer) != 0 || SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL))
