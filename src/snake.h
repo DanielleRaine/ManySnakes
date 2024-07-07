@@ -63,10 +63,12 @@ Snake *CreateSnake(Uint64 speed, SDL_Rect *box, int size, Direction direction);
 void StepSnake(Snake *snake, SDL_Rect *bounds);
 void GrowSnake(Snake *snake, int x, int y);
 bool CheckCollisionSnake(Snake *snake);
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake);
 void DestroySnake(Snake *snake);
 
 Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *box, const char *filepath);
 void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds);
+bool RenderFood(SDL_Renderer *renderer, Food *food);
 void DestroyFood(Food *food);
 
 

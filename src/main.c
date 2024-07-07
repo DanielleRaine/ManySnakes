@@ -15,8 +15,6 @@
 
 void PrintGameInfo();
 void PrintError();
-bool RenderFood(SDL_Renderer *renderer, Food *food);
-bool RenderSnake(SDL_Renderer *renderer, Snake *snake);
 int MainMenu(SDL_Window *window, SDL_Renderer *renderer);
 int Play(SDL_Window *window, SDL_Renderer *renderer);
 int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer);
@@ -161,35 +159,6 @@ void PrintError()
 {
 	SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
 	SDL_ClearError();
-}
-
-bool RenderFood(SDL_Renderer *renderer, Food *food)
-{
-	if (SDL_RenderCopy(renderer, food->image, NULL, &food->box) != 0)
-	{
-		PrintError();
-		return false;
-	}
-
-	return true;	
-}
-
-bool RenderSnake(SDL_Renderer *renderer, Snake *snake)
-{
-	SnakeNode *cur = snake->head;
-	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 0xFF);
-	while (cur)
-	{
-		SDL_Rect rect = {cur->x, cur->y, snake->w, snake->h};
-		if (SDL_RenderFillRect(renderer, &rect) != 0)
-		{
-			PrintError();
-			return false;
-		}
-		cur = cur->next;
-	}
-
-	return true;
 }
 
 int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
@@ -594,6 +563,9 @@ int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 		PrintError();
 		returnCode = -2;
 	}
+	
+	SDL_Log("%d", returnCode);
+
 	
 	return returnCode;
 }
