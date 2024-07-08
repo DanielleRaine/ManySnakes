@@ -11,7 +11,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include "snake.h"
-#include "textbox.h"
+#include "text.h"
 
 void PrintGameInfo();
 void PrintError();
@@ -92,7 +92,7 @@ int main(void)
 	srand(SDL_GetTicks());
 
 	int returnCode = MainMenu(window, renderer);	
-	printf("Exit MainMenu: %d", returnCode);
+	printf("Exit MainMenu: %d\n", returnCode);
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Destroy renderer and window, quit IMG and SDL, then return.
@@ -192,18 +192,34 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		return -2;
 	}
 
-	// create title text dimensions and color
+	// create array of texts
+	int textsSize = 2;
+	Text **texts = calloc(textsSize, sizeof(Text));
+
+	// set title text box dimensions and color
 	SDL_Rect box = {WINDOW_W / 2 - 200, WINDOW_H / 8, 400, 100};
 	SDL_Color color = {0xFF, 0xFF, 0xFF, 0xFF};
 	
-	// create title text
-	TextBox *title = CreateTextBox(renderer, &box, "ManySnakes", font, &color);
-	if (!title)
+	// create title text box
+	texts[0] = CreateText(renderer, &box, font, &color, "ManySnakes");
+	if (!texts[0])
 	{
 		PrintError();
 		TTF_CloseFont(font);
 		return -2;
 	}
+
+	// create author text box
+	box = (SDL_Rect) {WINDOW_W / 2 - 150, WINDOW_H / 4, 300, 50};
+	texts[1] = CreateText(renderer, &box, font, &color, "By Danielle Raine");
+	if (!texts[1])
+	{
+		PrintError();
+		TTF_CloseFont(font);
+		return -2;
+	}
+
+	// create play button
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -245,7 +261,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		if (returnCode != 0)
 			break;
 
-		if (!RenderTextBox(renderer, title))
+		if (!RenderTexts(renderer, texts, textsSize))
 		{
 			PrintError();
 			returnCode = -2;
@@ -267,7 +283,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		}
 	}
 	
-	DestroyTextBox(title);
+	DestroyTexts(texts, textsSize);
 	TTF_CloseFont(font);
 	return ~returnCode;
 }
