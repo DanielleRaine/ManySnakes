@@ -43,28 +43,21 @@ int main(void)
 	 * Get display and window bounds, create a window and renderer.
 	 */
 
-//	// display size struct
-//	SDL_Rect displayBounds;
-//	// get display bounds. if error, return
-//	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
-//	{
-//		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-//		return 1;
-//	}
-//
-//	// window dimensions
-//	const int WINDOW_WIDTH = displayBounds.w * 2 / 3;
-//	const int WINDOW_HEIGHT = displayBounds.h * 2 / 3;
-//
-//	// move distance dimensions
-//	const int MOVE_W = gcd(WINDOW_WIDTH, WINDOW_HEIGHT) / 2;
-//	const int MOVE_H = MOVE_W;
+	// display size struct
+	SDL_Rect displayBounds;
+	// get display bounds. if error, return
+	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		return 1;
+	}
 
-	const int WINDOW_W = 1280;
-	const int WINDOW_H = 720;
+	// window dimensions
+	const int WINDOW_WIDTH = displayBounds.w;
+	const int WINDOW_HEIGHT = displayBounds.h;
 
 	// create window
-	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_W, WINDOW_H, 0);
+	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
 	// if window doesn't exist, print error and return
 	if (!window)
 	{
@@ -82,7 +75,6 @@ int main(void)
 		return 1;
 	}
 
-	
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Seed rand and begin main loop.
@@ -164,9 +156,8 @@ void PrintError()
 int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 {
 	// get window and box size
-	int WINDOW_W, WINDOW_H;
-	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
-	// const int BOX_W = 20, BOX_H = 20;
+	int WINDOW_WIDTH, WINDOW_HEIGHT;
+	SDL_GetWindowSize(window, &WINDOW_WIDTH, &WINDOW_HEIGHT);
 
 	// initial clear frame
 	if (SDL_SetRenderDrawColor(renderer, 0x40, 0x40, 0x00, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
@@ -197,7 +188,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 	Text **texts = calloc(textsSize, sizeof(Text));
 
 	// set title text box dimensions and color
-	SDL_Rect box = {WINDOW_W / 2 - 200, WINDOW_H / 8, 400, 100};
+	SDL_Rect box = {WINDOW_WIDTH / 2 - 200, WINDOW_HEIGHT / 8, 400, 100};
 	SDL_Color color = {0xFF, 0xFF, 0xFF, 0xFF};
 	
 	// create title text box
@@ -210,7 +201,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 	}
 
 	// create author text box
-	box = (SDL_Rect) {WINDOW_W / 2 - 150, WINDOW_H / 4, 300, 50};
+	box = (SDL_Rect) {WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 4, 300, 50};
 	texts[1] = CreateText(renderer, &box, font, &color, "By Danielle Raine");
 	if (!texts[1])
 	{
@@ -291,12 +282,11 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 int Play(SDL_Window *window, SDL_Renderer *renderer)
 {
 	// get window and box size
-	int WINDOW_W, WINDOW_H;
-	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
-	const int BOX_W = 20, BOX_H = 20;
+	int WINDOW_WIDTH, WINDOW_HEIGHT;
+	SDL_GetWindowSize(window, &WINDOW_WIDTH, &WINDOW_HEIGHT);
 
 	// create frame buffer
-	SDL_Texture *buffer = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_TARGET, WINDOW_W, WINDOW_H);
+	SDL_Texture *buffer = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_TARGET, WINDOW_WIDTH, WINDOW_HEIGHT);
 	if (!buffer)
 	{
 		PrintError();
@@ -307,12 +297,8 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	 * Create the box size for snake and food, set play bounds, create the player's snake.
 	 */
 
-	// set box size and play bounds
-	SDL_Rect box = {WINDOW_W / 2, WINDOW_H / 2, BOX_W, BOX_H};
-	SDL_Rect bounds = {(WINDOW_W - WINDOW_H) / 2, 0, WINDOW_H, WINDOW_H};
-
 	// create player's snake
-	Snake *player = CreateSnake(125, &box, 3, UP);
+	Snake *player = CreateSnake(19, 19, 20, 20, 125, 3, SNAKE_UP);
 	if (!player)
 	{
 		PrintError();
@@ -328,11 +314,8 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	char applePNG[128] = ROOT_DIR;
 	strcat(applePNG, "/images/apple.png");
 
-	// set starting apple position to (0, 0)
-	box.x = box.y = 0;
-
 	// create apple
-	Food *apple = CreateFood(renderer, APPLE, &box, applePNG);
+	Food *apple = CreateFood(renderer, FOOD_APPLE, 0, 0, 20, 20, applePNG);
 	if (!apple)
 	{
 		PrintError();
@@ -340,8 +323,8 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 		SDL_DestroyTexture(buffer);
 		return -2;
 	}
-
-	RandPosFood(apple, player, &bounds);
+	// randomize apple position
+	RandPosFood(apple, player, 40, 40);
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -391,21 +374,21 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 				{
 					isPaused = true;
 				}
-				else if (pressedKey == SDLK_RIGHT && player->currentDirection != LEFT) // pressed right key, skip if direction is left
+				else if (pressedKey == SDLK_RIGHT && player->currentDirection != SNAKE_LEFT) // pressed right key, skip if direction is left
 				{
-					player->pendingDirection = RIGHT; 
+					player->pendingDirection = SNAKE_RIGHT; 
 				}
-				else if (pressedKey == SDLK_UP && player->currentDirection != DOWN) // pressed up key, skip if direction is down
+				else if (pressedKey == SDLK_UP && player->currentDirection != SNAKE_DOWN) // pressed up key, skip if direction is down
 				{
-					player->pendingDirection = UP; 
+					player->pendingDirection = SNAKE_UP; 
 				}
-				else if (pressedKey == SDLK_LEFT && player->currentDirection != RIGHT) // pressed left key, skip if direction is right
+				else if (pressedKey == SDLK_LEFT && player->currentDirection != SNAKE_RIGHT) // pressed left key, skip if direction is right
 				{
-					player->pendingDirection = LEFT; 
+					player->pendingDirection = SNAKE_LEFT; 
 				}
-				else if (pressedKey == SDLK_DOWN && player->currentDirection != UP) // pressed down key, skip if direction is up
+				else if (pressedKey == SDLK_DOWN && player->currentDirection != SNAKE_UP) // pressed down key, skip if direction is up
 				{
-					player->pendingDirection = DOWN;
+					player->pendingDirection = SNAKE_DOWN;
 				}
 			}
 		}
@@ -414,12 +397,12 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 			break;
 		
 		// draw snake play area
-		if (SDL_SetRenderDrawColor(renderer, 94, 64, 51, 255) != 0 || SDL_RenderFillRect(renderer, &bounds) != 0)
-		{
-			PrintError();
-			returnCode = -2;
-			break;
-		}
+	//	if (SDL_SetRenderDrawColor(renderer, 94, 64, 51, 255) != 0 || SDL_RenderFillRect(renderer, &bounds) != 0)
+	//	{
+	//		PrintError();
+	//		returnCode = -2;
+	//		break;
+	//	}
 
 
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -436,11 +419,11 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 			player->nextMoveTime = timeNow + player->speed;
 
 			// store tail position for new tail if snake grows 
-			int xTail = player->tail->x;
-			int yTail = player->tail->y;
+			int xTail = player->tail->xPos;
+			int yTail = player->tail->yPos;
 
 			// update the snake's position
-			StepSnake(player, &bounds);
+			StepSnake(player, 40, 40);
 			
 			// if snake hits itself, end game
 			if (CheckCollisionSnake(player)) 
@@ -450,12 +433,12 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 			}
  
 			// if snake eats food, grow snake and move food
-			if (player->head->x == apple->box.x && player->head->y == apple->box.y)
+			if (player->head->xPos == apple->xPos && player->head->yPos == apple->yPos)
 			{
 				//FIXME add resolution case when snake covers whole map (probably not needed)
-				RandPosFood(apple, player, &bounds);
+				RandPosFood(apple, player, 40, 40);
 				GrowSnake(player, xTail, yTail);
-				SDL_Log("Size: %d", player->size);
+				SDL_Log("Size: %d", player->length);
 			}
 
 		}
@@ -466,7 +449,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 		 */
 
 		// render food and snake, copy to renderer
-		if (!(RenderFood(renderer, apple) && RenderSnake(renderer, player)) || SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL) != 0)
+		if (!(RenderFood(renderer, apple, 0, 0, 20, 20) && RenderSnake(renderer, player, 0, 0, 20, 20)) || SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL) != 0)
 		{
 			PrintError();
 			returnCode = -2;
@@ -507,8 +490,8 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 
 int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 {	
-	int WINDOW_W, WINDOW_H;
-	SDL_GetWindowSize(window, &WINDOW_W, &WINDOW_H);
+	int WINDOW_WIDTH, WINDOW_HEIGHT;
+	SDL_GetWindowSize(window, &WINDOW_WIDTH, &WINDOW_HEIGHT);
 	
 	if (SDL_SetTextureBlendMode(buffer, SDL_BLENDMODE_BLEND) != 0 || SDL_SetTextureAlphaMod(buffer, 75) != 0)
 	{
