@@ -10,28 +10,26 @@
  * Declare Text struct.
  */
 
-typedef struct Text
+typedef struct Texture
 {
-	SDL_Rect box;
+	int  ;
 	SDL_Texture *texture;
 } Text;
 
 typedef struct Button
 {
-	SDL_Rect border;
 	SDL_Color color;
-	SDL_Color highlight;
 	Text *text;
 } Button;
 
-Text *CreateText(SDL_Renderer *renderer, SDL_Rect *box, TTF_Font *font, SDL_Color *color, const char *content);
-bool RenderText(SDL_Renderer *renderer, Text *text);
-bool RenderTexts(SDL_Renderer *renderer, Text **texts, int size);
-void DestroyText(Text *text);
-void DestroyTexts(Text **texts, int size);
+Text *CreateTextTexture(SDL_Renderer *renderer, SDL_Rect *, TTF_Font *font, SDL_Color *color, const char *content);
+bool RenderTexture(SDL_Renderer *renderer, Text *text);
+bool RenderTextures(SDL_Renderer *renderer, Text **texts, int size);
+void DestroyTexture(Text *text);
+void DestroyTextures(Text **texts, int size);
 
-Button *CreateButton(Text *text, SDL_Rect *border, SDL_Color *color, SDL_Color *highlight);
-//bool PressedButton(Button *button, SDL_MouseButtonEvent)
+Button *CreateButton(Text *text, SDL_Color *color);
+bool PressedButton(Button *button, SDL_MouseButtonEvent)
 bool RenderButton(SDL_Renderer *renderer, Button *button);
 //bool RenderButtons(SDL_Renderer *renderer, Button **buttons, int size);
 void DestroyButton(Button *button);

@@ -69,7 +69,7 @@ void DestroyTexts(Text **texts, int size)
 	}
 }
 
-Button *CreateButton(Text *text, SDL_Rect *border, SDL_Color *color, SDL_Color *highlight)
+Button *CreateButton(Text *text, SDL_Color *color)
 {
 	Button *button = malloc(sizeof(Button));
 	if (!button)
@@ -77,9 +77,7 @@ Button *CreateButton(Text *text, SDL_Rect *border, SDL_Color *color, SDL_Color *
 		return NULL;
 	}
 
-	button->border = *border;
 	button->color = *color;
-	button->highlight = *highlight;
 	button->text = text;
 
 	return button;
