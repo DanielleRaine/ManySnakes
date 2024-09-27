@@ -1,7 +1,11 @@
-#include "text.h"
+#include "texture.h"
 
 
-Text *CreateText(SDL_Renderer *renderer, SDL_Rect *box, TTF_Font *font, SDL_Color *color, const char *content)
+Texture *CreateTexture(SDL_Renderer *renderer, SDL_Rect *box, const char *imagepath);
+{
+}
+
+Text *CreateTexture(SDL_Renderer *renderer, SDL_Rect *box, TTF_Font *font, SDL_Color *color, const char *content)
 {
 	Text *text = malloc(sizeof(Text));
 	if (!text)
