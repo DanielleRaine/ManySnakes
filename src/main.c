@@ -11,7 +11,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include "snake.h"
-#include "text.h"
+#include "texture.h"
 
 void PrintGameInfo();
 void PrintError();
@@ -183,35 +183,34 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		return -2;
 	}
 
-	// create array of texts
-	int textsSize = 2;
-	Text **texts = calloc(textsSize, sizeof(Text));
+	// Create an array of textboxes.
+	int textboxesSize = 2;
+	Textbox **textboxes = calloc(textboxesSize, sizeof(Textbox));
 
-	// set title text box dimensions and color
+	// Set dimensions and colors of title textbox.
 	SDL_Rect box = {WINDOW_WIDTH / 2 - 200, WINDOW_HEIGHT / 8, 400, 100};
-	SDL_Color color = {0xFF, 0xFF, 0xFF, 0xFF};
+	SDL_Color boxcolor = {0x00, 0xA0, 0x00, 0xFF};
+	SDL_Color bordercolor = {0x00, 0x00, 0x00, 0xFF};
+	SDL_Color fontcolor = {0xFF, 0xFF, 0xFF, 0xFF};
 	
-	// create title text box
-	texts[0] = CreateText(renderer, &box, font, &color, "ManySnakes");
-	if (!texts[0])
+	// Create title textbox.
+	textboxes[0] = CreateTextbox(renderer, &box, 10, &boxcolor, &bordercolor, font, &fontcolor, "ManySnakes");
+	if (!textboxes[0])
 	{
 		PrintError();
 		TTF_CloseFont(font);
 		return -2;
 	}
 
-	// create author text box
+	// Create author textbox.
 	box = (SDL_Rect) {WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 4, 300, 50};
-	texts[1] = CreateText(renderer, &box, font, &color, "By Danielle Raine");
-	if (!texts[1])
+	textboxes[1] = CreateTextbox(renderer, &box, 10, &boxcolor, &bordercolor, font, &fontcolor, "By Danielle Raine");
+	if (!textboxes[1])
 	{
 		PrintError();
 		TTF_CloseFont(font);
 		return -2;
 	}
-
-	// create play button
-
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Set next frame time and begin main menu loop.
@@ -252,29 +251,31 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		if (returnCode != 0)
 			break;
 
-		if (!RenderTexts(renderer, texts, textsSize))
-		{
-			PrintError();
-			returnCode = -2;
-			break;
-		}
-
 		// display next frame once the next frame time is reached
 		Uint64 currentTime = SDL_GetTicks64();
 		if (currentTime >= nextFrameTime) 
 		{
 			nextFrameTime = currentTime + (1000 / 60);
-			SDL_RenderPresent(renderer);
+			
 			if (SDL_SetRenderDrawColor(renderer, 0x5F, 0x00, 0xFF, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
 			{
 				PrintError();
 				returnCode = -2;
 				break;
 			}
+			
+			if (!RenderTextboxes(renderer, textboxes, textboxesSize))
+			{
+				PrintError();
+				returnCode = -2;
+				break;
+			}
+
+			SDL_RenderPresent(renderer);
 		}
 	}
 	
-	DestroyTexts(texts, textsSize);
+	//DestroyTexts(texts, textsSize);
 	TTF_CloseFont(font);
 	return ~returnCode;
 }

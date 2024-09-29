@@ -1,125 +1,239 @@
 #include "texture.h"
 
 
-Texture *CreateTexture(SDL_Renderer *renderer, SDL_Rect *box, const char *imagepath);
+Texture *CreateTexture(SDL_Renderer *renderer, SDL_Rect *box, const char *imagepath)
 {
-}
-
-Text *CreateTexture(SDL_Renderer *renderer, SDL_Rect *box, TTF_Font *font, SDL_Color *color, const char *content)
-{
-	Text *text = malloc(sizeof(Text));
-	if (!text)
+	// Create the struct.
+	Texture *texture = malloc(sizeof(Texture));
+	if (!texture)
 	{
-		SDL_SetError("Failed to create text :c (malloc)");
+		SDL_SetError("Failed to create texture. (Failed to create Texture struct)");
 		return NULL;
 	}
 
-	SDL_Surface *surface = TTF_RenderText_Solid(font, content, *color);
+	// Create the texture if imagepath specified.
+	if (imagepath)
+	{
+		texture->texture = IMG_LoadTexture(renderer, imagepath);
+
+		if (!texture->texture)
+		{
+			SDL_SetError("Failed to create texture. (Texture failed to load from imagepath)");
+			free(texture);
+			return NULL;
+		}
+	}
+	else // Otherwise, set to NULL.
+	{
+		texture->texture = NULL;
+	}
+
+	// Set the position of the texture.
+	texture->box = *box;
+
+	return texture;
+}
+
+Textbox *CreateTextbox(SDL_Renderer *renderer, SDL_Rect *box, int borderwidth, SDL_Color *boxcolor, SDL_Color *bordercolor, TTF_Font *font, SDL_Color *fontcolor, const char *text)
+{
+	// Create the struct.
+	Textbox *textbox = malloc(sizeof(Textbox));
+	if (!textbox)
+	{
+		SDL_SetError("Failed to create textbox. (Failed to create Textbox struct)");
+		return NULL;
+	}
+
+	// Create the texture struct.
+	textbox->texture = CreateTexture(renderer, box, NULL);
+	if (!textbox->texture)
+	{
+		SDL_ClearError();
+		SDL_SetError("Failed to create textbox. (Failed to create Texture)");
+		free(textbox);
+		return NULL;
+	}
+
+	// Create the text surface.
+	SDL_Surface *surface = TTF_RenderText_Solid(font, text, *fontcolor);
 	if (!surface)
 	{
-		SDL_SetError("Failed to create text :c (text)");
-		free(text);
+		SDL_SetError("Failed to create textbox. (Failed to create text SDL_Surface)");
+		free(textbox->texture);
+		free(textbox);
 		return NULL;
 	}
 
-	text->texture = SDL_CreateTextureFromSurface(renderer, surface);
-	if (!text->texture)
-	{
-		SDL_SetError("Failed to create text :c (texture)");
-		SDL_FreeSurface(surface);
-		free(text);
-		return NULL;
-	}
-
+	// Create the text texture.
+	textbox->texture->texture = SDL_CreateTextureFromSurface(renderer, surface);
+	// Free the text surface.	
 	SDL_FreeSurface(surface);
-	text->box = *box;
+	if (!textbox->texture->texture)
+	{
+		SDL_SetError("Failed to create textbox. (Failed to create text SDL_Texture from SDL_Surface)");
+		free(textbox->texture);
+		free(textbox);
+		return NULL;
+	}
 
-	return text;
+	textbox->texture->box = *box;
+	textbox->borderwidth = borderwidth;
+	textbox->boxcolor = *boxcolor;
+	textbox->bordercolor = *bordercolor;
+	textbox->font = font;
+	textbox->fontcolor = *fontcolor;
+	textbox->text = text;
+	textbox->isUpdated = false;
+
+	return textbox;
 }
 
-bool RenderText(SDL_Renderer *renderer, Text *text)
+bool RenderTexture(SDL_Renderer *renderer, Texture *texture)
 {
-	if (SDL_RenderCopy(renderer, text->texture, NULL, &text->box))
+	if (SDL_RenderCopy(renderer, texture->texture, NULL, &texture->box))
 	{
-		SDL_SetError("Failed to render text :c (render)");
+		SDL_SetError("Failed to render texture. (texture)");
 		return false;
 	}
 
 	return true;
 }
 
-bool RenderTexts(SDL_Renderer *renderer, Text **texts, int size)
+bool RenderTextures(SDL_Renderer *renderer, Texture **textures, int size)
 {
 	for (int i = 0; i < size; ++i)
 	{
-		if (!RenderText(renderer, texts[i]))
+		if (!RenderTexture(renderer, textures[i]))
+		{
+			SDL_ClearError();
+			SDL_SetError("Failed to render texture %d. (texture)", i);
 			return false;
+		}
 	}
 
 	return true;
 }
 
-void DestroyText(Text *text)
-{
-	SDL_DestroyTexture(text->texture);
-	free(text);
+bool RenderTextbox(SDL_Renderer *renderer, Textbox *textbox)
+{	
+	int borderwidth = textbox->borderwidth;
+	SDL_Color color = textbox->bordercolor;
+	SDL_Rect borderbox = {textbox->texture->box.x + borderwidth, textbox->texture->box.y + borderwidth, textbox->texture->box.w + borderwidth, textbox->texture->box.h + borderwidth};
+	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 && SDL_RenderDrawRect(renderer, &borderbox))
+	{
+		SDL_SetError("Failed to render textbox. (Border failed to render)");
+		return false;
+	}
+
+	color = textbox->boxcolor;
+	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 && SDL_RenderDrawRect(renderer, &textbox->texture->box))
+	{
+		SDL_SetError("Failed to render textbox. (Box failed to render)");
+		return false;
+	}
+
+	if (!RenderTexture(renderer, textbox->texture))
+	{
+		SDL_ClearError();
+		SDL_SetError("Failed to render textbox. (Texture failed to render)");
+		return false;
+	}
+
+	return true;
 }
 
-void DestroyTexts(Text **texts, int size)
+bool RenderTextboxes(SDL_Renderer *renderer, Textbox **textboxes, int size)
 {
 	for (int i = 0; i < size; ++i)
 	{
-		DestroyText(texts[i]);
+		if (!RenderTextbox(renderer, textboxes[i]))
+		{
+			SDL_ClearError();
+			SDL_SetError("Failed to render textbox %d. (textbox)", i);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void DestroyTexture(Texture *texture)
+{
+	SDL_DestroyTexture(texture->texture);
+	free(texture);
+}
+
+void DestroyTextures(Texture **textures, int size)
+{
+	for (int i = 0; i < size; ++i)
+	{
+		DestroyTexture(textures[i]);
 	}
 }
 
-Button *CreateButton(Text *text, SDL_Color *color)
+void DestroyTextbox(Textbox *textbox)
 {
-	Button *button = malloc(sizeof(Button));
-	if (!button)
+	DestroyTexture(textbox->texture);
+	free(textbox);
+}
+
+void DestroyTextboxes(Textbox **textboxes, int size)
+{
+	for (int i = 0; i < size; ++i)
+	{
+		DestroyTextbox(textboxes[i]);
+	}
+}
+
+Textbutton *CreateTextbutton(SDL_Rect *mouseArea, Textbox *button, Textbox *buttonHighlighted, Textbox *buttonPressed)
+{
+	Textbutton *textbutton = malloc(sizeof(Textbutton));
+	if (!textbutton)
 	{
 		return NULL;
 	}
 
-	button->color = *color;
-	button->text = text;
+	textbutton->mouseArea = *mouseArea;
+	textbutton->button = button;
+	textbutton->buttonHighlighted = buttonHighlighted;
+	textbutton->buttonPressed = buttonPressed;
 
-	return button;
+	return textbutton;
 }
 
-bool RenderButton(SDL_Renderer *renderer, Button *button)
+bool RenderTextbutton(SDL_Renderer *renderer, Textbutton *textbutton, Uint32 mousestate, int x, int y)
 {
-	Uint8 r, g, b, a;
-	if (SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a) != 0)
+	SDL_Point cursorPos = {x, y};
+	Textbox *button;
+	if (!SDL_PointInRect(&cursorPos, &textbutton->mouseArea))
 	{
-		return false;
+		button = textbutton->button;
 	}
-
-	SDL_Point cursor;
-	SDL_GetMouseState(&cursor.x, &cursor.y);
-	SDL_Color color;
-
-	if (SDL_PointInRect(&cursor, &button->border))
+	else if (mousestate == SDL_BUTTON_LEFT)
 	{
-		color = button->highlight;
+		button = textbutton->buttonPressed;
 	}
 	else
 	{
-		color = button->color;
+		button = textbutton->buttonHighlighted;
 	}
 
-	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 || SDL_RenderFillRect(renderer, &button->border) != 0)
+	if (!button)
 	{
+		return true;
+	}
+
+	if (!RenderTextbox(renderer, button))
+	{
+		SDL_ClearError();
+		SDL_SetError("Failed to render textbutton. (Textbox failed to render)");
 		return false;
 	}
-
-	//FIXME Add checl
-	SDL_SetRenderDrawColor(renderer, r, g, b, a);
 
 	return true;
 }
 
-void DestroyButton(Button *button)
+void DestroyTextbutton(Textbutton *textbutton)
 {
-	free(button);
+	free(textbutton);
 }
