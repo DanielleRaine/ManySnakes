@@ -189,12 +189,12 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 
 	// Set dimensions and colors of title textbox.
 	SDL_Rect box = {WINDOW_WIDTH / 2 - 200, WINDOW_HEIGHT / 8, 400, 100};
-	SDL_Color boxcolor = {0x00, 0xA0, 0x00, 0xFF};
-	SDL_Color bordercolor = {0x00, 0x00, 0x00, 0xFF};
-	SDL_Color fontcolor = {0xFF, 0xFF, 0xFF, 0xFF};
+	SDL_Color boxcolor = {0x00, 0x00, 0xFF, 0xFF};
+	SDL_Color bordercolor = {0xFF, 0xFF, 0xFF, 0xFF};
+	SDL_Color fontcolor = {0xFF, 0x00, 0xFF, 0xFF};
 	
 	// Create title textbox.
-	textboxes[0] = CreateTextbox(renderer, &box, 10, &boxcolor, &bordercolor, font, &fontcolor, "ManySnakes");
+	textboxes[0] = CreateTextbox(renderer, &box, 100, &boxcolor, &bordercolor, font, &fontcolor, "ManySnakes");
 	if (!textboxes[0])
 	{
 		PrintError();
@@ -211,6 +211,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		TTF_CloseFont(font);
 		return -2;
 	}
+
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Set next frame time and begin main menu loop.
@@ -339,6 +340,8 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	// play loop
 	int returnCode = 0;
 	bool isRunning = true;
+	// set the earliest time the next frame occurs
+	Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
 	while (isRunning)
 	{
 		SDL_Event event;
@@ -351,8 +354,6 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 			break;
 		}
 
-		// set the earliest time the next frame occurs
-		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60); //FIXME might change how works in future!
 
 		bool isPaused = false;
 		
@@ -448,21 +449,25 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		 * Draw the food, snake, and wait until next frame, draw frame.
 		 */
-
-		// render food and snake, copy to renderer
-		if (!(RenderFood(renderer, apple, 0, 0, 20, 20) && RenderSnake(renderer, player, 0, 0, 20, 20)) || SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL) != 0)
+		
+		Uint64 currentTime = SDL_GetTicks64();
+		if (currentTime >= nextFrameTime) 
 		{
-			PrintError();
-			returnCode = -2;
-			break;
-		}
+			nextFrameTime = currentTime + (1000 / 60);
+			
+			// render food and snake, copy to renderer
+			if (!(RenderFood(renderer, apple, 0, 0, 20, 20) && RenderSnake(renderer, player, 0, 0, 20, 20)) || SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL) != 0)
+			{
+				PrintError();
+				returnCode = -2;
+				break;
+			}
 
-		// wait and present next frame
-		while (SDL_GetTicks64() < nextFrameTime);
-		SDL_RenderPresent(renderer);
+			SDL_RenderPresent(renderer);
+		}
 		
 		if (isPaused)
-		{	//FIXME Snake moves immediately after unpause if enough time elapsed during pause instead of during game
+		{	
 			Uint64 timeBeforePause = SDL_GetTicks64();
 			returnCode = Pause(window, renderer, buffer);
 			SDL_Log("Exit Pause: %d", returnCode);
