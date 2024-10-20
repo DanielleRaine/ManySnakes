@@ -1,7 +1,7 @@
 #include "snake.h"
 
 
-Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 speed, int length, SnakeDirection direction)
+Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 speed, int length, SnakeDirection direction, SDL_Color *color)
 {
 	// a snake cannot have zero length. if less than 1, return NULL
 	if (length < 1)
@@ -11,7 +11,12 @@ Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 spe
 
 	// create snake struct and set speed and direction
     	Snake *snake = malloc(sizeof(Snake));
-	//FIXME Check snake malloc.
+
+	if (!snake)
+	{
+		return NULL;
+	}
+
 	snake->speed = speed;
 	snake->currentDirection = snake->pendingDirection = direction;
 
@@ -21,7 +26,12 @@ Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 spe
 
 	// create snake head and set starting position and size of each node
     	snake->head = snake->tail = malloc(sizeof(SnakeNode));    
-	//FIXME check snake node malloc.
+	if (!snake->head)
+	{
+		free(snake);
+		return NULL;
+	}
+
     	snake->head->xPos = xPos;
     	snake->head->yPos = yPos;
 	snake->length = length;
@@ -29,12 +39,15 @@ Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 spe
 	// create the rest of the snake
     	for (int i = 1; i < length; ++i)
     	{
+		//FIXME check snake node malloc
     	    	snake->tail->next = malloc(sizeof(SnakeNode));
     	    	snake->tail->next->xPos = snake->tail->xPos;
     	    	snake->tail->next->yPos = snake->tail->yPos + 1;
     	    	snake->tail = snake->tail->next;
     	} //FIXME Make it so that snake can start in different directions.
     	snake->tail->next = NULL;
+
+	snake->color = *color;
 
     	return snake;
 }
@@ -141,8 +154,12 @@ bool CheckCollisionSnake(Snake *snake)
 bool RenderSnake(SDL_Renderer *renderer, Snake *snake, int xOrigin, int yOrigin, int xMultiplier, int yMultiplier)
 {
 	SnakeNode *cur = snake->head;
-	SDL_SetRenderDrawColor(renderer, 0, 0xFF, 0, 0xFF);
-	//FIXME Validate color change.
+
+	if (SDL_SetRenderDrawColor(renderer, snake->color.r, snake->color.g, snake->color.b, snake->color.a) != 0)
+	{
+		return false;
+	}
+
 	while (cur)
 	{
 		SDL_Rect rect = {xOrigin + cur->xPos * xMultiplier, yOrigin + cur->yPos * yMultiplier, snake->nodeWidth, snake->nodeHeight};

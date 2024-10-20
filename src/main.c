@@ -258,12 +258,12 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		{
 			nextFrameTime = currentTime + (1000 / 60);
 			
-			//if (SDL_SetRenderDrawColor(renderer, 0x5F, 0x00, 0xFF, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
-			//{
-			//	PrintError();
-			//	returnCode = -2;
-			//	break;
-			//}
+			if (SDL_SetRenderDrawColor(renderer, 0x5F, 0x00, 0xFF, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
+			{
+				PrintError();
+				returnCode = -2;
+				break;
+			}
 			
 			if (!RenderTextboxes(renderer, textboxes, textboxesSize))
 			{
@@ -276,7 +276,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		}
 	}
 	
-	//DestroyTexts(texts, textsSize);
+	DestroyTextboxes(textboxes, textboxesSize);
 	TTF_CloseFont(font);
 	return ~returnCode;
 }
@@ -300,7 +300,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	 */
 
 	// create player's snake
-	Snake *player = CreateSnake(19, 19, 20, 20, 125, 3, SNAKE_UP);
+	Snake *player = CreateSnake(19, 19, 20, 20, 125, 3, SNAKE_UP, & (SDL_Color) {0x00, 0x00, 0xA0, 0xFF});
 	if (!player)
 	{
 		PrintError();
@@ -346,15 +346,6 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	{
 		SDL_Event event;
 		
-		// set buffer as render target and clear frame
-		if (SDL_SetRenderTarget(renderer, buffer) != 0 || SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) != 0 || SDL_RenderClear(renderer) != 0)
-		{
-			PrintError();
-			returnCode = -2;
-			break;
-		}
-
-
 		bool isPaused = false;
 		
 		// poll events
@@ -398,15 +389,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 		if (returnCode != 0)
 			break;
 		
-		// draw snake play area
-	//	if (SDL_SetRenderDrawColor(renderer, 94, 64, 51, 255) != 0 || SDL_RenderFillRect(renderer, &bounds) != 0)
-	//	{
-	//		PrintError();
-	//		returnCode = -2;
-	//		break;
-	//	}
-
-
+		
 		/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		 * Move snake when time has elapsed. If snake eats food, reposition the food and grow snake.
 		 * If the snake hits itself, end game.
@@ -455,6 +438,23 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 		{
 			nextFrameTime = currentTime + (1000 / 60);
 			
+			// set buffer as render target and clear frame
+			if (SDL_SetRenderTarget(renderer, buffer) != 0 || SDL_SetRenderDrawColor(renderer, 0xad, 0xd8, 0xe6, 0xff) != 0 || SDL_RenderClear(renderer) != 0)
+			{
+				PrintError();
+				returnCode = -2;
+				break;
+			}
+			
+			// draw snake play area
+			if (SDL_SetRenderDrawColor(renderer, 0xe0, 0xb0, 0xff, 0xff) != 0 || SDL_RenderFillRect(renderer, & (SDL_Rect) {0, 0, 800, 800}) != 0)
+			{
+				PrintError();
+				returnCode = -2;
+				break;
+			}
+
+
 			// render food and snake, copy to renderer
 			if (!(RenderFood(renderer, apple, 0, 0, 20, 20) && RenderSnake(renderer, player, 0, 0, 20, 20)) || SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL) != 0)
 			{

@@ -49,6 +49,7 @@ typedef struct Snake
     	SnakeDirection pendingDirection;	// direction for the next move of the snake
     	Uint64 lastMoveTime;	// time in milliseconds since last move
     	Uint64 nextMoveTime;	// time in milliseconds until next move
+	SDL_Color color;	// color of SnakeNodes
 } Snake;
 
 // food for the snake to eat!!
@@ -60,7 +61,7 @@ typedef struct Food
     	SDL_Texture *texture;	// food texture
 } Food;
 
-Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 speed, int length, SnakeDirection direction);
+Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 speed, int length, SnakeDirection direction, SDL_Color *color);
 void StepSnake(Snake *snake, int xMax, int yMax);
 void GrowSnake(Snake *snake, int xNew, int yNew);
 bool CheckCollisionSnake(Snake *snake);
