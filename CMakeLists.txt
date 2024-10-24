@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.7)
 # set project name and options
 project(ManySnakes
-	VERSION 0.0.9.2
+	VERSION 0.0.10.2
 	DESCRIPTION "\"ManySnakes by Danielle Raine.\""
 	HOMEPAGE_URL "\"https://github.com/DanielleRaine/ManySnakes\""
 	LANGUAGES C
@@ -17,14 +17,16 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 # additional warnings
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-# find SDL2 and SDL2_image
+# find packages
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
+find_package(SDL2_ttf REQUIRED)
 
-# include SDL2 and SDL2_image
+# include packages
 include_directories(ManySnakes
 	${SDL2_INCLUDE_DIRS}
 	${SDL2IMAGE_INCLUDE_DIRS}
+	${SDL2TTF_INCLUDE_DIRS}
 )
 
 # configure project config file
@@ -35,6 +37,7 @@ add_executable(ManySnakes
 	src/main.c
 	src/math.c
 	src/snake.c
+	src/texture.c
 )
 
 # specify where executable target should look for include files
@@ -43,4 +46,4 @@ target_include_directories(ManySnakes PUBLIC
 )
 
 # link libraries
-target_link_libraries(ManySnakes ${SDL2_LIBRARIES} SDL2_image::SDL2_image)
+target_link_libraries(ManySnakes ${SDL2_LIBRARIES} SDL2_image::SDL2_image SDL2_ttf::SDL2_ttf)

@@ -1,120 +1,136 @@
 #include "snake.h"
 
 
-Snake *CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction)
+Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 speed, int length, SnakeDirection direction, SDL_Color *color)
 {
-	// a snake cannot have zero size. if less than 1, return NULL
-	if (size < 1)
+	// a snake cannot have zero length. if less than 1, return NULL
+	if (length < 1)
     	{
 		return NULL;
     	}
 
 	// create snake struct and set speed and direction
     	Snake *snake = malloc(sizeof(Snake));
+
+	if (!snake)
+	{
+		return NULL;
+	}
+
 	snake->speed = speed;
 	snake->currentDirection = snake->pendingDirection = direction;
 
 	// set shape of each SnakeNode
-	snake->w = body->w;
-	snake->h = body->h;
+	snake->nodeWidth = nodeWidth;
+	snake->nodeHeight = nodeHeight;
 
 	// create snake head and set starting position and size of each node
     	snake->head = snake->tail = malloc(sizeof(SnakeNode));    
-    	snake->head->x = body->x;
-    	snake->head->y = body->y;
-	snake->size = size;
-	
+	if (!snake->head)
+	{
+		free(snake);
+		return NULL;
+	}
+
+    	snake->head->xPos = xPos;
+    	snake->head->yPos = yPos;
+	snake->length = length;
+
 	// create the rest of the snake
-    	for (int i = 1; i < size; ++i)
+    	for (int i = 1; i < length; ++i)
     	{
+		//FIXME check snake node malloc
     	    	snake->tail->next = malloc(sizeof(SnakeNode));
-    	    	snake->tail->next->x = snake->tail->x;
-    	    	snake->tail->next->y = snake->tail->y + snake->h;
+    	    	snake->tail->next->xPos = snake->tail->xPos;
+    	    	snake->tail->next->yPos = snake->tail->yPos + 1;
     	    	snake->tail = snake->tail->next;
-    	}
+    	} //FIXME Make it so that snake can start in different directions.
     	snake->tail->next = NULL;
+
+	snake->color = *color;
 
     	return snake;
 }
 
-void StepSnake(Snake *snake, SDL_Rect *bounds)
+void StepSnake(Snake *snake, int xMax, int yMax)
 {
     	snake->currentDirection = snake->pendingDirection;
     	int xDelta, yDelta;
     	// displace the snake depending on the direction it was set to move
     	switch (snake->currentDirection)
     	{
-		case RIGHT:
-			xDelta = snake->w;
+		case SNAKE_RIGHT:
+			xDelta = 1;
     	        	yDelta = 0;
     	        	break;
-    	    	case UP:
+    	    	case SNAKE_UP:
     	    	    	xDelta = 0;
-    	    	    	yDelta = -snake->h;
+    	    	    	yDelta = -1;
     	    	    	break;
-    	    	case LEFT:
-    	    	    	xDelta = -snake->w;
+    	    	case SNAKE_LEFT:
+    	    	    	xDelta = -1;
     	    	    	yDelta = 0;
     	    	    	break;
-    	    	case DOWN:
+    	    	case SNAKE_DOWN:
     	    	    	xDelta = 0;
-    	    	    	yDelta = snake->h;
+    	    	    	yDelta = 1;
     	    	    	break;
     	    	default:
     	    	    	return;
     	}
     	SnakeNode *cur = snake->head;
-    	int xNext = cur->x + xDelta;
-    	int yNext = cur->y + yDelta;
+    	int xNext = cur->xPos + xDelta;
+    	int yNext = cur->yPos + yDelta;
 
     	// if the snake is out of bounds, loop to other side
-    	if (xNext < bounds->x) // snake went left out of bounds
+    	if (xNext < 0) // snake went left out of bounds
     	{
-    	    	xNext += bounds->w;
+    	    	xNext += xMax;
     	}
 
-    	if (xNext >= bounds->x + bounds->w) // snake went right out of bounds
+    	if (xNext >= xMax) // snake went right out of bounds
     	{
-    	    	xNext = bounds->x;
+    	    	xNext = 0;
     	}
 
-    	if (yNext < bounds->y) // snake went up out of bounds
+    	if (yNext < 0) // snake went up out of bounds
     	{
-    	    	yNext += bounds->h;
+    	    	yNext += yMax;
     	}
 
-    	if (yNext >= bounds->y + bounds->h) // snake went down out of bounds
+    	if (yNext >= yMax) // snake went down out of bounds
     	{
-    	    	yNext = bounds->y;
+    	    	yNext = 0;
     	}
 
-    	// update body of the snake to move it
+    	// update each node of snake to move it
     	while (cur)
     	{
-    	    	int xLast = cur->x;
-    	    	int yLast = cur->y;
-    	    	cur->x = xNext;
-    	    	cur->y = yNext;
+    	    	int xLast = cur->xPos;
+    	    	int yLast = cur->yPos;
+    	    	cur->xPos = xNext;
+    	    	cur->yPos = yNext;
     	    	xNext = xLast;
     	    	yNext = yLast;
     	    	cur = cur->next;
     	}
 }
 
-void GrowSnake(Snake *snake, int x, int y)
+void GrowSnake(Snake *snake, int xNew, int yNew)
 {
 	snake->tail->next = malloc(sizeof(SnakeNode));
+	//FIXME Add validation for malloc.
 	snake->tail = snake->tail->next;
-	snake->tail->x = x;
-	snake->tail->y = y;
+	snake->tail->xPos = xNew;
+	snake->tail->yPos = yNew;
 	snake->tail->next = NULL;
-	++snake->size;
+	++snake->length;
 }
 
 bool CheckCollisionSnake(Snake *snake)
 {
 	// a snake of less than 5 nodes cannot collide with itself
-	if (snake->size < 5)
+	if (snake->length < 5)
 	{
 		return false;
 	}
@@ -124,7 +140,7 @@ bool CheckCollisionSnake(Snake *snake)
 	while (cur)
 	{
 		// if the position of a node is the same as the head, then collision
-		if (cur->x == snake->head->x && cur->y == snake->head->y)
+		if (cur->xPos == snake->head->xPos && cur->yPos == snake->head->yPos)
 		{
 			return true;
 		}
@@ -133,6 +149,28 @@ bool CheckCollisionSnake(Snake *snake)
 	}
 
 	return false;
+}
+
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake, int xOrigin, int yOrigin, int xMultiplier, int yMultiplier)
+{
+	SnakeNode *cur = snake->head;
+
+	if (SDL_SetRenderDrawColor(renderer, snake->color.r, snake->color.g, snake->color.b, snake->color.a) != 0)
+	{
+		return false;
+	}
+
+	while (cur)
+	{
+		SDL_Rect rect = {xOrigin + cur->xPos * xMultiplier, yOrigin + cur->yPos * yMultiplier, snake->nodeWidth, snake->nodeHeight};
+		if (SDL_RenderFillRect(renderer, &rect) != 0)
+		{
+			return false;
+		}
+		cur = cur->next;
+	}
+
+	return true;
 }
 
 void DestroySnake(Snake *snake)
@@ -149,37 +187,44 @@ void DestroySnake(Snake *snake)
     	free(snake);
 }
 
-Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const char *filepath)
+Food *CreateFood(SDL_Renderer *renderer, FoodType type, int xPos, int yPos, int textureWidth, int textureHeight, const char *filepath)
 {
 	Food *food = malloc(sizeof(Food));
+	//FIXME Validate food malloc.
 	food->type = type;
-	food->image = IMG_LoadTexture(renderer, filepath);
+	food->texture = IMG_LoadTexture(renderer, filepath);
 	if (!(food && filepath))
 	{
 		free(food);
 		return NULL;
 	}
 
-	food->body = *body;
+	food->xPos = xPos;
+	food->yPos = yPos;
+	food->textureWidth = textureWidth;
+	food->textureHeight = textureHeight;
 
 	return food;
 }
 
-void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
+void RandPosFood(Food *food, Snake *snake, int xMax, int yMax)
 {
+	//FIXME Check if snake spans entire screen.
+	
 	bool validPos = false;
 	while (!validPos)
 	{
+		//FIXME I should probably set these to a temporary variable just in case.
 		// get a random x and y position in a grid layout
-		food->body.x = rand() % (bounds->w / food->body.w) * food->body.w + bounds->x;
-		food->body.y = rand() % (bounds->h / food->body.h) * food->body.h + bounds->y;
+		food->xPos = rand() % xMax;
+		food->yPos = rand() % yMax;
 
 		validPos = true;
 		SnakeNode *cur = snake->head;
 		while(cur)
 		{
 			// if the food exists in the same place as the snake, find new random position
-			if (food->body.x == cur->x && food->body.y == cur->y)
+			if (food->xPos == cur->xPos && food->yPos == cur->yPos) // I fixed a bug here! Can you guess it? :)
 			{
 				validPos = false;
 				break;
@@ -190,9 +235,20 @@ void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds)
 	}
 }
 
+bool RenderFood(SDL_Renderer *renderer, Food *food, int xOrigin, int yOrigin, int xMultiplier, int yMultiplier)
+{
+	SDL_Rect rect = {xOrigin + food->xPos * xMultiplier, yOrigin + food->yPos * yMultiplier, food->textureWidth, food->textureHeight};
+	if (SDL_RenderCopy(renderer, food->texture, NULL, &rect) != 0)
+	{
+		return false;
+	}
+
+	return true;	
+}
+
 void DestroyFood(Food *food)
 {
-	SDL_DestroyTexture(food->image);
+	SDL_DestroyTexture(food->texture);
 	free(food);
 }
 

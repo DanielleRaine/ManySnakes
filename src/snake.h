@@ -10,19 +10,19 @@
  * Declare Direction and FoodType enums.
  */
 
-// describes the directions that snakes can take
+// directions that snakes can take
 typedef enum
 {
-   	RIGHT = 'r',
-   	UP = 'u',
-   	LEFT = 'l',
-   	DOWN = 'd'
-} Direction;
+   	SNAKE_RIGHT = 'r',
+   	SNAKE_UP = 'u',
+   	SNAKE_LEFT = 'l',
+   	SNAKE_DOWN = 'd'
+} SnakeDirection;
 
-// describes the different types of foods that can appear
+// different types of foods that can appear
 typedef enum
 {
-    	APPLE = 'a'
+    	FOOD_APPLE = 'a'
 } FoodType;
 
 
@@ -35,38 +35,42 @@ typedef enum
 typedef struct SnakeNode
 {
     	struct SnakeNode *next;
-	int x, y;
+	int xPos, yPos;
 } SnakeNode;
 
 // snake container struct that holds overall properties and the head SnakeNode
-typedef struct 
+typedef struct Snake
 {
     	SnakeNode *head, *tail;
     	Uint64 speed;	// in units of milliseconds per block
-    	int w, h;	// width and height of each SnakeNode
-	int size;	// number of SnakeNodes
-	Direction currentDirection;	// current direction of the snake
-    	Direction pendingDirection;	// direction for the next move of the snake
+    	int nodeWidth, nodeHeight;	// width and height of each SnakeNode
+	int length;	// number of SnakeNodes
+	SnakeDirection currentDirection;	// current direction of the snake
+    	SnakeDirection pendingDirection;	// direction for the next move of the snake
     	Uint64 lastMoveTime;	// time in milliseconds since last move
     	Uint64 nextMoveTime;	// time in milliseconds until next move
+	SDL_Color color;	// color of SnakeNodes
 } Snake;
 
 // food for the snake to eat!!
-typedef struct
+typedef struct Food
 {
     	FoodType type;
-    	SDL_Rect body;
-    	SDL_Texture *image;	// image of the food
+	int xPos, yPos;
+	int textureWidth, textureHeight;
+    	SDL_Texture *texture;	// food texture
 } Food;
 
-Snake *CreateSnake(Uint64 speed, SDL_Rect *body, int size, Direction direction);
-void StepSnake(Snake *snake, SDL_Rect *bounds);
-void GrowSnake(Snake *snake, int x, int y);
+Snake *CreateSnake(int xPos, int yPos, int nodeWidth, int nodeHeight, Uint64 speed, int length, SnakeDirection direction, SDL_Color *color);
+void StepSnake(Snake *snake, int xMax, int yMax);
+void GrowSnake(Snake *snake, int xNew, int yNew);
 bool CheckCollisionSnake(Snake *snake);
+bool RenderSnake(SDL_Renderer *renderer, Snake *snake, int xOrigin, int yOrigin, int xMultiplier, int yMultiplier);
 void DestroySnake(Snake *snake);
 
-Food *CreateFood(SDL_Renderer *renderer, FoodType type, SDL_Rect *body, const char *filepath);
-void RandPosFood(Food *food, Snake *snake, SDL_Rect *bounds);
+Food *CreateFood(SDL_Renderer *renderer, FoodType type, int xPos, int yPos, int textureWidth, int textureHeight, const char *filepath);
+void RandPosFood(Food *food, Snake *snake, int xMax, int yMax);
+bool RenderFood(SDL_Renderer *renderer, Food *food, int xOrigin, int yOrigin, int xMultiplier, int yMultiplier);
 void DestroyFood(Food *food);
 
 
