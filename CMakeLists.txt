@@ -8,25 +8,21 @@ project(ManySnakes
 	LANGUAGES C
 )
 
+add_definitions(-DROOT_DIR="${CMAKE_SOURCE_DIR}")
+
 # specify c standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
-#set warnings
-if (MSVC)
-    # warning level 4
-    add_compile_options(/W4)
-else()
-    # additional warnings
-    add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
+# additional warnings
+add_compile_options(-Wall -Wextra -Wpedantic)
 
 # find SDL2 and SDL2_image
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 
 # include SDL2 and SDL2_image
-include_directories(${PROJECT_NAME}
+include_directories(ManySnakes
 	${SDL2_INCLUDE_DIRS}
 	${SDL2IMAGE_INCLUDE_DIRS}
 )
@@ -35,12 +31,14 @@ include_directories(${PROJECT_NAME}
 configure_file(config.h.in config.h)
 
 # add executable called ManySnakes build from source files
-add_executable(${PROJECT_NAME} main.c)
+add_executable(ManySnakes
+	main.c
+)
 
-# specify where exxecutable target should look for include files
+# specify where executable target should look for include files
 target_include_directories(ManySnakes PUBLIC
 	"${PROJECT_BINARY_DIR}"
 )
 
 # link libraries
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES})
+target_link_libraries(ManySnakes ${SDL2_LIBRARIES} SDL2_image::SDL2_image)
