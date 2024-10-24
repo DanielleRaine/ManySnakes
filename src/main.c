@@ -189,12 +189,12 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 
 	// Set dimensions and colors of title textbox.
 	SDL_Rect box = {WINDOW_WIDTH / 2 - 200, WINDOW_HEIGHT / 8, 400, 100};
-	SDL_Color boxcolor = {0x00, 0xA0, 0xFF, 0xFF};
-	SDL_Color bordercolor = {0xFF, 0xFF, 0xFF, 0xFF};
+	SDL_Color boxcolor = {0xFF, 0xFF, 0xFf, 0xFF};
+	SDL_Color bordercolor = {0xFF, 0xA0, 0xD0, 0xFF};
 	SDL_Color fontcolor = {0xFF, 0x00, 0xFF, 0xFF};
 	
 	// Create title textbox.
-	textboxes[0] = CreateTextbox(renderer, &box, 100, &boxcolor, &bordercolor, font, &fontcolor, "ManySnakes");
+	textboxes[0] = CreateTextbox(renderer, &box, 15, &boxcolor, &bordercolor, font, &fontcolor, "ManySnakes");
 	if (!textboxes[0])
 	{
 		PrintError();
@@ -258,12 +258,14 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		{
 			nextFrameTime = currentTime + (1000 / 60);
 			
-			if (SDL_SetRenderDrawColor(renderer, 0x5F, 0x00, 0xFF, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
+			if (SDL_SetRenderDrawColor(renderer, 0xA0, 0x00, 0xA0, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
 			{
 				PrintError();
 				returnCode = -2;
 				break;
 			}
+
+			//SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
 			
 			if (!RenderTextboxes(renderer, textboxes, textboxesSize))
 			{

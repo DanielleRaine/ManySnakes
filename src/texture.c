@@ -120,7 +120,7 @@ bool RenderTextbox(SDL_Renderer *renderer, Textbox *textbox)
 	SDL_Color color = textbox->bordercolor;
 	SDL_Rect borderbox = {textbox->texture->box.x - borderwidth, textbox->texture->box.y - borderwidth, textbox->texture->box.w + borderwidth * 2, textbox->texture->box.h + borderwidth * 2};
 
-	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 && SDL_RenderFillRect(renderer, &borderbox) != 0)
+	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 || SDL_RenderFillRect(renderer, &borderbox) != 0)
 	{
 		SDL_SetError("Failed to render textbox. (Border failed to render)");
 		return false;
@@ -128,11 +128,12 @@ bool RenderTextbox(SDL_Renderer *renderer, Textbox *textbox)
 
 	color = textbox->boxcolor;
 
-	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 && SDL_RenderFillRect(renderer, &textbox->texture->box) != 0)
+	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 || SDL_RenderFillRect(renderer, &textbox->texture->box) != 0)
 	{
 		SDL_SetError("Failed to render textbox. (Box failed to render)");
 		return false;
 	}
+
 
 	if (!RenderTexture(renderer, textbox->texture))
 	{
