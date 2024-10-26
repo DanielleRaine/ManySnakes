@@ -214,6 +214,32 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Create play button.
+	 */
+
+	typedef struct Button
+	{
+		Textbutton *button;
+		Textbox **textboxes;
+	} Button;
+
+	Button playButton = {NULL, calloc(3, sizeof(Textbox))};
+
+	if (!playButton.textboxes)
+	{
+		SDL_Log("Failed to create play button. (textboxes array)");
+		TTF_CloseFont(font);
+		return -2;
+	}
+
+	box = (SDL_Rect) {WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 4 * 3, 300, 100};
+	playButton.textboxes[0] = CreateTextbox(renderer, &box, 10, &boxcolor, &bordercolor, font, &fontcolor, "Play!");
+	playButton.textboxes[1] = CreateTextbox(renderer, &box, 15, &bordercolor, &fontcolor, font, &boxcolor, "Play!");
+	playButton.textboxes[2] = CreateTextbox(renderer, &box, 20, &fontcolor, &boxcolor, font, &bordercolor, "Play!");
+
+	playButton.button = CreateTextbutton(&box, playButton.textboxes[0], playButton.textboxes[1], playButton.textboxes[2]);
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Set next frame time and begin main menu loop.
 	 */
 
@@ -274,11 +300,17 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 				break;
 			}
 
+			int mouseX, mouseY;
+
+			RenderTextbutton(renderer, playButton.button, SDL_GetMouseState(&mouseX, &mouseY), mouseX, mouseY);
+
 			SDL_RenderPresent(renderer);
 		}
 	}
 	
 	DestroyTextboxes(textboxes, textboxesSize);
+	DestroyTextboxes(playButton.textboxes, 3);
+	DestroyTextbutton(playButton.button);
 	TTF_CloseFont(font);
 	return ~returnCode;
 }
