@@ -273,6 +273,16 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 						break;
 				}
 			}
+			else if (SDL_MOUSEBUTTONUP == event.type)
+			{
+				if (SDL_PointInRect(& (SDL_Point) {event.button.x, event.button.y}, &playButton.button->mouseArea))
+				{
+					returnCode = Play(window, renderer);
+					SDL_Log("Exit Play: %d", returnCode);
+					if (returnCode != 0)
+						break;
+				}
+			}
 		}
 
 		if (returnCode != 0)
@@ -604,6 +614,5 @@ int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 	
 	SDL_Log("%d", returnCode);
 
-	
 	return returnCode;
 }
