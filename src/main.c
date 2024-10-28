@@ -358,7 +358,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 
 	// get apple png path
 	char applePNG[128] = ROOT_DIR;
-	strcat(applePNG, "/images/apple.png");
+	strcat(applePNG, "/images/Apple.png");
 
 	// create apple
 	Food *apple = CreateFood(renderer, FOOD_APPLE, 0, 0, 20, 20, applePNG);
