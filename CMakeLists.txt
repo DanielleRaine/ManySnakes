@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.7)
 # set project name and options
 project(ManySnakes
-	VERSION 0.0.10.2
+	VERSION 0.0.11.2
 	DESCRIPTION "\"ManySnakes by Danielle Raine.\""
 	HOMEPAGE_URL "\"https://github.com/DanielleRaine/ManySnakes\""
 	LANGUAGES C

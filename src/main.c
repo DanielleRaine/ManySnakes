@@ -214,6 +214,32 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Create play button.
+	 */
+
+	typedef struct Button
+	{
+		Textbutton *button;
+		Textbox **textboxes;
+	} Button;
+
+	Button playButton = {NULL, calloc(3, sizeof(Textbox))};
+
+	if (!playButton.textboxes)
+	{
+		SDL_Log("Failed to create play button. (textboxes array)");
+		TTF_CloseFont(font);
+		return -2;
+	}
+
+	box = (SDL_Rect) {WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 4 * 3, 300, 100};
+	playButton.textboxes[0] = CreateTextbox(renderer, &box, 10, &boxcolor, &bordercolor, font, &fontcolor, "Play!");
+	playButton.textboxes[1] = CreateTextbox(renderer, &box, 15, &bordercolor, &fontcolor, font, &boxcolor, "Play!");
+	playButton.textboxes[2] = CreateTextbox(renderer, &box, 20, &fontcolor, &boxcolor, font, &bordercolor, "Play!");
+
+	playButton.button = CreateTextbutton(&box, playButton.textboxes[0], playButton.textboxes[1], playButton.textboxes[2]);
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Set next frame time and begin main menu loop.
 	 */
 
@@ -240,6 +266,16 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 				SDL_Log("Key pressed!");
 				SDL_Keycode key = event.key.keysym.sym;
 				if (SDLK_RETURN == key)
+				{
+					returnCode = Play(window, renderer);
+					SDL_Log("Exit Play: %d", returnCode);
+					if (returnCode != 0)
+						break;
+				}
+			}
+			else if (SDL_MOUSEBUTTONUP == event.type)
+			{
+				if (SDL_PointInRect(& (SDL_Point) {event.button.x, event.button.y}, &playButton.button->mouseArea))
 				{
 					returnCode = Play(window, renderer);
 					SDL_Log("Exit Play: %d", returnCode);
@@ -274,11 +310,17 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 				break;
 			}
 
+			int mouseX, mouseY;
+
+			RenderTextbutton(renderer, playButton.button, SDL_GetMouseState(&mouseX, &mouseY), mouseX, mouseY);
+
 			SDL_RenderPresent(renderer);
 		}
 	}
 	
 	DestroyTextboxes(textboxes, textboxesSize);
+	DestroyTextboxes(playButton.textboxes, 3);
+	DestroyTextbutton(playButton.button);
 	TTF_CloseFont(font);
 	return ~returnCode;
 }
@@ -316,7 +358,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 
 	// get apple png path
 	char applePNG[128] = ROOT_DIR;
-	strcat(applePNG, "/images/apple.png");
+	strcat(applePNG, "/images/Apple.png");
 
 	// create apple
 	Food *apple = CreateFood(renderer, FOOD_APPLE, 0, 0, 20, 20, applePNG);
@@ -572,6 +614,5 @@ int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 	
 	SDL_Log("%d", returnCode);
 
-	
 	return returnCode;
 }
