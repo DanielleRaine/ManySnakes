@@ -1,0 +1,3 @@
+-- configuration file for ManySnakes
+
+-- 

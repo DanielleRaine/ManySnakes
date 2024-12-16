@@ -1,49 +1,10 @@
-# specify minimum cmake version
-cmake_minimum_required(VERSION 3.7)
-# set project name and options
+cmake_minimum_required(VERSION 3.15...3.31)
+
 project(ManySnakes
-	VERSION 0.0.11.2
-	DESCRIPTION "\"ManySnakes by Danielle Raine.\""
-	HOMEPAGE_URL "\"https://github.com/DanielleRaine/ManySnakes\""
-	LANGUAGES C
-)
+	VERSION 0.0.12.2
+	DESCRIPTION "ManySnakes by Danielle Raine. There are... many snakes."
+	LANGUAGES C)
 
-add_definitions(-DROOT_DIR="${CMAKE_SOURCE_DIR}")
+add_executable(ManySnakes src/main.c src/snake.c src/texture.c)
 
-# specify c standard
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED True)
 
-# additional warnings
-add_compile_options(-Wall -Wextra -Wpedantic)
-
-# find packages
-find_package(SDL2 REQUIRED)
-find_package(SDL2_image REQUIRED)
-find_package(SDL2_ttf REQUIRED)
-
-# include packages
-include_directories(ManySnakes
-	${SDL2_INCLUDE_DIRS}
-	${SDL2IMAGE_INCLUDE_DIRS}
-	${SDL2TTF_INCLUDE_DIRS}
-)
-
-# configure project config file
-configure_file(src/config.h.in config.h)
-
-# add executable called ManySnakes build from source files
-add_executable(ManySnakes
-	src/main.c
-	src/math.c
-	src/snake.c
-	src/texture.c
-)
-
-# specify where executable target should look for include files
-target_include_directories(ManySnakes PUBLIC
-	"${PROJECT_BINARY_DIR}"
-)
-
-# link libraries
-target_link_libraries(ManySnakes ${SDL2_LIBRARIES} SDL2_image::SDL2_image SDL2_ttf::SDL2_ttf)

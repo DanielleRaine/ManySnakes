@@ -12,6 +12,9 @@
 #include <SDL2/SDL_ttf.h>
 #include "snake.h"
 #include "texture.h"
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 
 void PrintGameInfo();
 void PrintError();
@@ -84,7 +87,7 @@ int main(void)
 	srand(SDL_GetTicks());
 
 	int returnCode = MainMenu(window, renderer);	
-	printf("Exit MainMenu: %d\n", returnCode);
+	printf("Exit MainMenu (%d\n)", returnCode);
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Destroy renderer and window, quit IMG and SDL, then return.
@@ -143,8 +146,8 @@ void PrintGameInfo()
 	// print compiled, linked sdl version
 	SDL_VERSION(&compiled);
 	SDL_GetVersion(&linked);
-	SDL_Log("Compiled against SDL version %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
-	SDL_Log("Linking against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
+	SDL_Log("Compiled SDL version %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
+	SDL_Log("Linked against SDL version %u.%u.%u\n", linked.major, linked.minor, linked.patch);
 }
 
 void PrintError()
@@ -166,13 +169,12 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
 		return -2;
 	}
 
-
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Create font and textboxes.
 	 */
 
 	// get font location
-	char fontpath[128] = ROOT_DIR;
+	char fontpath[128] = ManySnakes_ROOT_DIR;
 	strcat(fontpath, "/Roboto_Mono/RobotoMono-VariableFont_wght.ttf");
 	
 	// create font
@@ -357,7 +359,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	 */
 
 	// get apple png path
-	char applePNG[128] = ROOT_DIR;
+	char applePNG[128] = ManySnakes_ROOT_DIR;
 	strcat(applePNG, "/images/Apple.png");
 
 	// create apple

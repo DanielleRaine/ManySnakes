@@ -1,4 +1,5 @@
 // configured options and settings for ManySnakes
+#define ManySnakes_ROOT_DIR "@CMAKE_SOURCE_DIR@"
 #define ManySnakes_VERSION_MAJOR @ManySnakes_VERSION_MAJOR@
 #define ManySnakes_VERSION_MINOR @ManySnakes_VERSION_MINOR@
 #define ManySnakes_VERSION_PATCH @ManySnakes_VERSION_PATCH@
