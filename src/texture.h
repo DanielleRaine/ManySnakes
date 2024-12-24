@@ -1,59 +1,66 @@
-#ifndef TEXT_H
-#define TEXT_H
-
-#include <stdbool.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_ttf.h>
-
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Declare Text struct.
+/**
+ * @file
+ * @author Danielle Raine
+ * @date 2024-10-24
+ * @brief Provides functions and structures for creating, managing, and freeing textures used in the game.
+ *
+ * Detailed description goes here.
+ *
  */
 
+#ifndef TEXTURE_H
+#define TEXTURE_H
+
+#include <stdbool.h>
+#include <string.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
+
+/**
+ * @brief Brief description goes here.
+ *
+ * Detailed description goes here.
+ */
 typedef struct Texture
 {
-	SDL_Rect box;
-	SDL_Texture *texture;
+	SDL_Rect *bounds;	/**< Rectangle the @c SDL_Texture is bounded by. If @c NULL, the rendered @c SDL_Texture will span the @c SDL_Window. */
+	SDL_Texture *texture;	/**< @c SDL_Texture that will be rendered. */
+	char *texture_path;	/**< The file path to the file that will be loaded as a @c SDL_Texture */	
 } Texture;
 
-typedef struct Textbox
-{
-	Texture *texture;
-	int borderwidth;
-	SDL_Color boxcolor;
-	SDL_Color bordercolor;
-	TTF_Font *font;
-	SDL_Color fontcolor;
-	const char *text;
-	bool isUpdated;
-} Textbox;
 
-typedef struct Textbutton
-{
-	SDL_Rect mouseArea;
-	Textbox *button;
-	Textbox *buttonHighlighted;
-	Textbox *buttonPressed;
-} Textbutton;
+/**
+ * @brief Creates a @c Texture.
+ * @param renderer @c SDL_Renderer used to create @c SDL_Texture.
+ * @param bounds @c SDL_Rect that bounds @c SDL_Texture.
+ * @param texture_path Filepath to the texture.
+ * @return @c Texture, @c NULL on error.
+ */
+Texture *CreateTexture(SDL_Renderer *renderer, const SDL_Rect *bounds, const char *texture_path);
 
-
-Texture *CreateTexture(SDL_Renderer *renderer, SDL_Rect *box, const char *imagepath);
-Textbox *CreateTextbox(SDL_Renderer *renderer, SDL_Rect *box, int borderwidth, SDL_Color *boxcolor, SDL_Color *bordercolor, TTF_Font *font, SDL_Color *fontcolor, const char *text);
+/**
+ * @brief Renders a @c Texture.
+ * @param renderer @SDL_Renderer that will render @c SDL_Texture.
+ * @param texture @Texture struct containing @c SDL_Texture.
+ * @return @c bool, @c true on success, @c false on error.
+ */
 bool RenderTexture(SDL_Renderer *renderer, Texture *texture);
-bool RenderTextures(SDL_Renderer *renderer, Texture **textures, int size);
-bool RenderTextbox(SDL_Renderer *renderer, Textbox *textbox);
-bool RenderTextboxes(SDL_Renderer *renderer, Textbox **textboxes, int size);
-void DestroyTexture(Texture *texture);
-void DestroyTextures(Texture **textures, int size);
-void DestroyTextbox(Textbox *textbox);
-void DestroyTextboxes(Textbox **textboxes, int size);
 
-Textbutton *CreateTextbutton(SDL_Rect *mouseArea, Textbox *button, Textbox *buttonHighlighted, Textbox *buttonPressed);
-bool PressedTextbutton(Textbutton *textbutton);
-bool RenderTextbutton(SDL_Renderer *renderer, Textbutton *textbutton, Uint32 mousestate, int x, int y);
-//bool RenderButtons(SDL_Renderer *renderer, Button **buttons, int size);
-void DestroyTextbutton(Textbutton *textbutton);
-//void DestroyButtons(Button **buttons, int size);
+/**
+ * @brief TODO add documentation
+ */
+bool RenderTextures(SDL_Renderer *renderer, Texture **textures );
+
+/**
+ * @brief TODO add documentation
+ */
+void DestroyTexture(Texture *texture);
+
+/**
+ * @brief TODO add documentation
+ */
+void DestroyTextures(Texture **textures);
+
 
 #endif

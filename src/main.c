@@ -1,8 +1,12 @@
-/* ManySnakes by Danielle Raine
- * Created June 6th, 2024
+/** 
+ * @file
+ * @author Danielle Raine
+ * @date Created June 6th, 2024
+ * @date Last Modified December 23rd, 2024
+ * @brief ManySnakes by Danielle Raine
  */
 
-#include "config.h"
+#include "version.h"
 #include "math.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,80 +22,132 @@
 
 void PrintGameInfo();
 void PrintError();
-int MainMenu(SDL_Window *window, SDL_Renderer *renderer);
-int Play(SDL_Window *window, SDL_Renderer *renderer);
-int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer);
+int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L);
+int Play(SDL_Window *window, SDL_Renderer *renderer, lua_State *L);
+int Pause(SDL_Window *window, SDL_Renderer *renderer, lua_State *L, SDL_Texture *buffer);
 
 int main(void)
 {
-	// print the game's credits and versions
 	PrintGameInfo();
+
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Initialize SDL, IMG, and TTF.
 	 */
 
-	// initialize sdl and ttf. if error, return 
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0 || TTF_Init() != 0)
 	{
 		PrintError();
 		return 1;
 	}
 
-	// initialize img
 	IMG_Init(IMG_INIT_PNG);
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Get display and window bounds, create a window and renderer.
+	 * Create the Lua state for reading scripts.
 	 */
 
-	// display size struct
-	SDL_Rect displayBounds;
-	// get display bounds. if error, return
-	if (SDL_GetDisplayBounds(0, &displayBounds) != 0)
+	lua_State *L = luaL_newstate();
+	if (!L)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to create Lua State (main)");
+		IMG_Quit();
+		TTF_Quit();
+		SDL_Quit();
 		return 1;
 	}
 
-	// window dimensions
-	const int WINDOW_WIDTH = displayBounds.w;
-	const int WINDOW_HEIGHT = displayBounds.h;
+	luaL_openlibs(L);
 
-	// create window
-	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
-	// if window doesn't exist, print error and return
+
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Get the window bounds from config.lua. Get the display bounds. Create the window and the renderer.
+	 */
+	
+	if (luaL_dofile(L, "scripts/config.lua") != 0)
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Cannot run configuration file %s (main)", lua_tostring(L, -1));
+		lua_close(L);
+		IMG_Quit();
+		TTF_Quit();
+		SDL_Quit();
+		return 1;
+	}
+
+	lua_getglobal(L, "window_width");
+	if (!lua_isnumber(L, -1))
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'window_width' should be a number (main)");
+		lua_close(L);
+		IMG_Quit();
+		TTF_Quit();
+		SDL_Quit();
+		return 1;
+	}
+	
+	lua_getglobal(L, "window_height");
+	if (!lua_isnumber(L, -1))
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'window_height' should be a number (main)");
+		lua_close(L);
+		IMG_Quit();
+		TTF_Quit();
+		SDL_Quit();
+		return 1;
+	}
+
+	int window_width = (int) lua_tonumber(L, -2);
+	int window_height = (int) lua_tonumber(L, -1);
+	lua_pop(L, 2);
+
+	//SDL_Rect display_bounds;
+	//if (SDL_GetDisplayBounds(0, &display_bounds) != 0)
+	//{
+	//	SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+	//	return 1;
+	//}
+
+	SDL_Window *window = SDL_CreateWindow("ManySnakes", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_width, window_height, 0);
 	if (!window)
 	{
 		PrintError();
+		lua_close(L);
+		IMG_Quit();
+		TTF_Quit();
+		SDL_Quit();
 		return 1;
 	}
 
-	// create renderer
 	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	// if renderer doesn't exist, print error, destroy window and return
 	if (!renderer || SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) != 0)
 	{
 		PrintError();
 		SDL_DestroyWindow(window);
+		lua_close(L);
+		IMG_Quit();
+		TTF_Quit();
+		SDL_Quit();
 		return 1;
 	}
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Seed rand and begin main loop.
+	 * Call the main menu.
 	 */
 
-	// seed rand
+	//FIXME Change to system time.
 	srand(SDL_GetTicks());
 
-	int returnCode = MainMenu(window, renderer);	
-	printf("Exit MainMenu (%d\n)", returnCode);
+	int return_code = MainMenu(window, renderer, L);	
+	SDL_Log("Exit MainMenu (%d)\n", return_code);
+
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Destroy renderer and window, quit IMG and SDL, then return.
+	 * Close the Lua state. Destroy the renderer and the window. Quit IMG and SDL, then return.
 	 */
+
+	lua_close(L);
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
@@ -100,14 +156,14 @@ int main(void)
 	TTF_Quit();
 	SDL_Quit();
 
-	return returnCode;
+	return return_code;
 }
 
 
 void PrintGameInfo()
 {
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Print the game's description, Github URL, and version numbers of the game, C, and SDL.
+	 * Print the game's description, Github URL, and versions of the game, C, and SDL.
 	 */
 
 	// print game description, github url
@@ -139,11 +195,9 @@ void PrintGameInfo()
 	// print c version
 	SDL_Log("C Version %ld\n", __STDC_VERSION__ );
 	
-	// sdl version structs
+	// print compiled, linked sdl version
 	SDL_version compiled;
 	SDL_version linked;
-	
-	// print compiled, linked sdl version
 	SDL_VERSION(&compiled);
 	SDL_GetVersion(&linked);
 	SDL_Log("Compiled SDL version %u.%u.%u\n", compiled.major, compiled.minor, compiled.patch);
@@ -156,190 +210,207 @@ void PrintError()
 	SDL_ClearError();
 }
 
-int MainMenu(SDL_Window *window, SDL_Renderer *renderer)
+int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 {
-	// get window and box size
-	int WINDOW_WIDTH, WINDOW_HEIGHT;
-	SDL_GetWindowSize(window, &WINDOW_WIDTH, &WINDOW_HEIGHT);
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Get the window bounds. Clear the frame. Get the frames per second.
+	 */
 
-	// initial clear frame
+	int window_width, window_height;
+	SDL_GetWindowSize(window, &window_width, &window_height);
+
 	if (SDL_SetRenderDrawColor(renderer, 0x40, 0x40, 0x00, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
 	{
 		PrintError();
 		return -2;
 	}
 
+	lua_getglobal(L, "frames_per_second");
+	if (!lua_isnumber(L, -1))
+	{
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'frames_per_second' should be a number ()");
+		return -2;
+	}
+
+	int frames_per_second = (int) lua_tonumber(L, -1);
+	lua_pop(L, 1);
+
+
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Create font and textboxes.
+	 * Create the font and main menu textboxes.
 	 */
 
-	// get font location
-	char fontpath[128] = ManySnakes_ROOT_DIR;
-	strcat(fontpath, "/Roboto_Mono/RobotoMono-VariableFont_wght.ttf");
-	
-	// create font
-	TTF_Font *font = TTF_OpenFont(fontpath, 50);
-	if (!font)
-	{
-		PrintError();
-		return -2;
-	}
+	//TTF_Font *font = TTF_OpenFont("assets/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf", 50);
+	//if (!font)
+	//{
+	//	PrintError();
+	//	return -2;
+	//}
 
-	// Create an array of textboxes.
-	int textboxesSize = 2;
-	Textbox **textboxes = calloc(textboxesSize, sizeof(Textbox));
+	//// create an array of textboxes
+	//int textboxes_size = 2;
+	//Textbox **textboxes = calloc(textboxes_size, sizeof(Textbox));
 
-	// Set dimensions and colors of title textbox.
-	SDL_Rect box = {WINDOW_WIDTH / 2 - 200, WINDOW_HEIGHT / 8, 400, 100};
-	SDL_Color boxcolor = {0xFF, 0xFF, 0xFf, 0xFF};
-	SDL_Color bordercolor = {0xFF, 0xA0, 0xD0, 0xFF};
-	SDL_Color fontcolor = {0xFF, 0x00, 0xFF, 0xFF};
-	
-	// Create title textbox.
-	textboxes[0] = CreateTextbox(renderer, &box, 15, &boxcolor, &bordercolor, font, &fontcolor, "ManySnakes");
-	if (!textboxes[0])
-	{
-		PrintError();
-		TTF_CloseFont(font);
-		return -2;
-	}
+	//// set dimensions and colors of title textbox
+	//SDL_Rect box = {window_width / 2 - 200, window_height / 8, 400, 100};
+	//SDL_Color box_color = {0xFF, 0xFF, 0xFf, 0xFF};
+	//SDL_Color border_color = {0xFF, 0xA0, 0xD0, 0xFF};
+	//SDL_Color font_color = {0xFF, 0x00, 0xFF, 0xFF};
+	//
+	//// create title textbox
+	//textboxes[0] = CreateTextbox(renderer, &box, 15, &box_color, &border_color, font, &font_color, "ManySnakes");
+	//if (!textboxes[0])
+	//{
+	//	PrintError();
+	//	TTF_CloseFont(font);
+	//	return -2;
+	//}
 
-	// Create author textbox.
-	box = (SDL_Rect) {WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 4, 300, 50};
-	textboxes[1] = CreateTextbox(renderer, &box, 10, &boxcolor, &bordercolor, font, &fontcolor, "By Danielle Raine");
-	if (!textboxes[1])
-	{
-		PrintError();
-		TTF_CloseFont(font);
-		return -2;
-	}
+	//// create author textbox
+	//box = (SDL_Rect) {window_width / 2 - 150, window_height / 4, 300, 50};
+	//textboxes[1] = CreateTextbox(renderer, &box, 10, &box_color, &border_color, font, &font_color, "By Danielle Raine");
+	//if (!textboxes[1])
+	//{
+	//	PrintError();
+	//	TTF_CloseFont(font);
+	//	return -2;
+	//}
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Create play button.
 	 */
 
-	typedef struct Button
-	{
-		Textbutton *button;
-		Textbox **textboxes;
-	} Button;
+	//typedef struct Button
+	//{
+	//	Textbutton *button;
+	//	Textbox **textboxes;
+	//} Button;
 
-	Button playButton = {NULL, calloc(3, sizeof(Textbox))};
+	//Button play_button = {NULL, calloc(3, sizeof(Textbox))};
 
-	if (!playButton.textboxes)
-	{
-		SDL_Log("Failed to create play button. (textboxes array)");
-		TTF_CloseFont(font);
-		return -2;
-	}
+	//if (!play_button.textboxes)
+	//{
+	//	SDL_Log("Failed to create play button. (textboxes array)");
+	//	TTF_CloseFont(font);
+	//	return -2;
+	//}
 
-	box = (SDL_Rect) {WINDOW_WIDTH / 2 - 150, WINDOW_HEIGHT / 4 * 3, 300, 100};
-	playButton.textboxes[0] = CreateTextbox(renderer, &box, 10, &boxcolor, &bordercolor, font, &fontcolor, "Play!");
-	playButton.textboxes[1] = CreateTextbox(renderer, &box, 15, &bordercolor, &fontcolor, font, &boxcolor, "Play!");
-	playButton.textboxes[2] = CreateTextbox(renderer, &box, 20, &fontcolor, &boxcolor, font, &bordercolor, "Play!");
+	//box = (SDL_Rect) {window_width / 2 - 150, window_height / 4 * 3, 300, 100};
+	//play_button.textboxes[0] = CreateTextbox(renderer, &box, 10, &box_color, &border_color, font, &font_color, "Play!");
+	//play_button.textboxes[1] = CreateTextbox(renderer, &box, 15, &border_color, &font_color, font, &box_color, "Play!");
+	//play_button.textboxes[2] = CreateTextbox(renderer, &box, 20, &font_color, &box_color, font, &border_color, "Play!");
 
-	playButton.button = CreateTextbutton(&box, playButton.textboxes[0], playButton.textboxes[1], playButton.textboxes[2]);
+	//play_button.button = CreateTextbutton(&box, play_button.textboxes[0], play_button.textboxes[1], play_button.textboxes[2]);
+
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Set next frame time and begin main menu loop.
 	 */
 
-	// set the next time a frame is presented
-	Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
+	Uint64 next_frame_time = SDL_GetTicks64() + (1000 / frames_per_second);
 
-	// main menu loop
-	int returnCode = 0;
-	bool isRunning = true;
-	while (isRunning)
+	int return_code = 0;
+	bool is_running = true;
+	while (is_running)
 	{
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
-			if (SDL_QUIT == event.type)
+			if (SDL_QUIT == event.type) // window is closed
 			{ 
-				// window is closed
-				returnCode = -1;
+				return_code = -1;
 				break;
 			}
-			else if (SDL_KEYDOWN == event.type)
+			else if (SDL_KEYDOWN == event.type) // a key is pressed
 			{
-				// key pressed down
 				SDL_Log("Key pressed!");
 				SDL_Keycode key = event.key.keysym.sym;
 				if (SDLK_RETURN == key)
 				{
-					returnCode = Play(window, renderer);
-					SDL_Log("Exit Play: %d", returnCode);
-					if (returnCode != 0)
+					return_code = Play(window, renderer, L);
+					SDL_Log("Exit Play: %d", return_code);
+					if (return_code != 0)
 						break;
+				}
+				else if (SDLK_F5 == key)
+				{
+
+
 				}
 			}
 			else if (SDL_MOUSEBUTTONUP == event.type)
 			{
-				if (SDL_PointInRect(& (SDL_Point) {event.button.x, event.button.y}, &playButton.button->mouseArea))
-				{
-					returnCode = Play(window, renderer);
-					SDL_Log("Exit Play: %d", returnCode);
-					if (returnCode != 0)
-						break;
-				}
+				//if (SDL_PointInRect(& (SDL_Point) {event.button.x, event.button.y}, &play_button.button->mouseArea))
+				//{
+				//	return_code = Play(window, renderer, L);
+				//	SDL_Log("Exit Play (%d)", return_code);
+				//	if (return_code != 0)
+				//		break;
+				//}
 			}
 		}
 
-		if (returnCode != 0)
+		if (return_code != 0)
 			break;
 
 		// display next frame once the next frame time is reached
-		Uint64 currentTime = SDL_GetTicks64();
-		if (currentTime >= nextFrameTime) 
+		Uint64 current_time = SDL_GetTicks64();
+		if (current_time >= next_frame_time) 
 		{
-			nextFrameTime = currentTime + (1000 / 60);
-			
+			next_frame_time = current_time + (1000 / frames_per_second);
+
 			if (SDL_SetRenderDrawColor(renderer, 0xA0, 0x00, 0xA0, 0xFF) != 0 || SDL_RenderClear(renderer) != 0)
 			{
 				PrintError();
-				returnCode = -2;
+				return_code = -2;
 				break;
 			}
 
 			//SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
 			
-			if (!RenderTextboxes(renderer, textboxes, textboxesSize))
-			{
-				PrintError();
-				returnCode = -2;
-				break;
-			}
+			//if (!RenderTextboxes(renderer, textboxes, textboxes_size))
+			//{
+			//	PrintError();
+			//	return_code = -2;
+			//	break;
+			//}
 
-			int mouseX, mouseY;
+			//int mouseX, mouseY;
 
-			RenderTextbutton(renderer, playButton.button, SDL_GetMouseState(&mouseX, &mouseY), mouseX, mouseY);
+			//RenderTextbutton(renderer, play_button.button, SDL_GetMouseState(&mouseX, &mouseY), mouseX, mouseY);
 
 			SDL_RenderPresent(renderer);
 		}
 	}
 	
-	DestroyTextboxes(textboxes, textboxesSize);
-	DestroyTextboxes(playButton.textboxes, 3);
-	DestroyTextbutton(playButton.button);
-	TTF_CloseFont(font);
-	return ~returnCode;
+	//DestroyTextboxes(textboxes, textboxes_size);
+	//DestroyTextboxes(play_button.textboxes, 3);
+	//DestroyTextbutton(play_button.button);
+	//TTF_CloseFont(font);
+	return ~return_code;
 }
 
-int Play(SDL_Window *window, SDL_Renderer *renderer)
+int Play(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 {
-	// get window and box size
-	int WINDOW_WIDTH, WINDOW_HEIGHT;
-	SDL_GetWindowSize(window, &WINDOW_WIDTH, &WINDOW_HEIGHT);
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Get the window bounds. Create the frame buffer. Get the frames per second.
+	 */
 
-	// create frame buffer
-	SDL_Texture *buffer = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_TARGET, WINDOW_WIDTH, WINDOW_HEIGHT);
+	int window_width, window_height;
+	SDL_GetWindowSize(window, &window_width, &window_height);
+
+	SDL_Texture *buffer = SDL_CreateTexture(renderer, SDL_GetWindowPixelFormat(window), SDL_TEXTUREACCESS_TARGET, window_width, window_height);
 	if (!buffer)
 	{
 		PrintError();
 		return -2;
 	}
+
+	lua_getglobal(L, "frames_per_second");
+	int frames_per_second = (int) lua_tonumber(L, -1);
+	lua_pop(L, 1);
+
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	 * Create the box size for snake and food, set play bounds, create the player's snake.
@@ -359,8 +430,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	 */
 
 	// get apple png path
-	char applePNG[128] = ManySnakes_ROOT_DIR;
-	strcat(applePNG, "/images/Apple.png");
+	char applePNG[128] = "assets/textures/Apple.png";
 
 	// create apple
 	Food *apple = CreateFood(renderer, FOOD_APPLE, 0, 0, 20, 20, applePNG);
@@ -384,55 +454,55 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	player->nextMoveTime = player->lastMoveTime + player->speed;
 
 	// play loop
-	int returnCode = 0;
-	bool isRunning = true;
+	int return_code = 0;
+	bool is_running = true;
 	// set the earliest time the next frame occurs
-	Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
-	while (isRunning)
+	Uint64 next_frame_time = SDL_GetTicks64() + (1000 / frames_per_second);
+	while (is_running)
 	{
 		SDL_Event event;
 		
-		bool isPaused = false;
+		bool is_paused = false;
 		
 		// poll events
 		while (SDL_PollEvent(&event))
 		{
 			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
 			{
-				returnCode = -1;
+				return_code = -1;
 				break;
 			}
 			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
 			{
-				SDL_Keycode pressedKey = event.key.keysym.sym;
+				SDL_Keycode pressed_key = event.key.keysym.sym;
 
 				// log the name of pressed key
-				SDL_Log("%s", SDL_GetKeyName(pressedKey));
+				SDL_Log("%s", SDL_GetKeyName(pressed_key));
 
-				if (pressedKey == SDLK_ESCAPE)
+				if (pressed_key == SDLK_ESCAPE)
 				{
-					isPaused = true;
+					is_paused = true;
 				}
-				else if (pressedKey == SDLK_RIGHT && player->currentDirection != SNAKE_LEFT) // pressed right key, skip if direction is left
+				else if (pressed_key == SDLK_RIGHT && player->currentDirection != SNAKE_LEFT) // pressed right key, skip if direction is left
 				{
 					player->pendingDirection = SNAKE_RIGHT; 
 				}
-				else if (pressedKey == SDLK_UP && player->currentDirection != SNAKE_DOWN) // pressed up key, skip if direction is down
+				else if (pressed_key == SDLK_UP && player->currentDirection != SNAKE_DOWN) // pressed up key, skip if direction is down
 				{
 					player->pendingDirection = SNAKE_UP; 
 				}
-				else if (pressedKey == SDLK_LEFT && player->currentDirection != SNAKE_RIGHT) // pressed left key, skip if direction is right
+				else if (pressed_key == SDLK_LEFT && player->currentDirection != SNAKE_RIGHT) // pressed left key, skip if direction is right
 				{
 					player->pendingDirection = SNAKE_LEFT; 
 				}
-				else if (pressedKey == SDLK_DOWN && player->currentDirection != SNAKE_UP) // pressed down key, skip if direction is up
+				else if (pressed_key == SDLK_DOWN && player->currentDirection != SNAKE_UP) // pressed down key, skip if direction is up
 				{
 					player->pendingDirection = SNAKE_DOWN;
 				}
 			}
 		}
 		
-		if (returnCode != 0)
+		if (return_code != 0)
 			break;
 		
 		
@@ -459,7 +529,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 			// if snake hits itself, end game
 			if (CheckCollisionSnake(player)) 
 			{
-				isRunning = false;
+				is_running = false;
 				SDL_Log("Game Over");
 			}
  
@@ -479,16 +549,16 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 		 * Draw the food, snake, and wait until next frame, draw frame.
 		 */
 		
-		Uint64 currentTime = SDL_GetTicks64();
-		if (currentTime >= nextFrameTime) 
+		Uint64 current_time = SDL_GetTicks64();
+		if (current_time >= next_frame_time) 
 		{
-			nextFrameTime = currentTime + (1000 / 60);
+			next_frame_time = current_time + (1000 / frames_per_second);
 			
 			// set buffer as render target and clear frame
 			if (SDL_SetRenderTarget(renderer, buffer) != 0 || SDL_SetRenderDrawColor(renderer, 0xad, 0xd8, 0xe6, 0xff) != 0 || SDL_RenderClear(renderer) != 0)
 			{
 				PrintError();
-				returnCode = -2;
+				return_code = -2;
 				break;
 			}
 			
@@ -496,7 +566,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 			if (SDL_SetRenderDrawColor(renderer, 0xe0, 0xb0, 0xff, 0xff) != 0 || SDL_RenderFillRect(renderer, & (SDL_Rect) {0, 0, 800, 800}) != 0)
 			{
 				PrintError();
-				returnCode = -2;
+				return_code = -2;
 				break;
 			}
 
@@ -505,25 +575,25 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 			if (!(RenderFood(renderer, apple, 0, 0, 20, 20) && RenderSnake(renderer, player, 0, 0, 20, 20)) || SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL) != 0)
 			{
 				PrintError();
-				returnCode = -2;
+				return_code = -2;
 				break;
 			}
 
 			SDL_RenderPresent(renderer);
 		}
 		
-		if (isPaused)
+		if (is_paused)
 		{	
 			Uint64 timeBeforePause = SDL_GetTicks64();
-			returnCode = Pause(window, renderer, buffer);
-			SDL_Log("Exit Pause: %d", returnCode);
-			if (returnCode == 0)
+			return_code = Pause(window, renderer, L, buffer);
+			SDL_Log("Exit Pause: %d", return_code);
+			if (return_code == 0)
 			{
 				player->nextMoveTime += SDL_GetTicks64() - timeBeforePause;
 			}
-			else if (returnCode > 0)
+			else if (return_code > 0)
 			{
-				--returnCode;
+				--return_code;
 			}
 			else
 			{
@@ -536,13 +606,17 @@ int Play(SDL_Window *window, SDL_Renderer *renderer)
 	DestroySnake(player);
 	SDL_DestroyTexture(buffer);
 
-	return returnCode;
+	return return_code;
 }
 
-int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
+int Pause(SDL_Window *window, SDL_Renderer *renderer, lua_State *L, SDL_Texture *buffer)
 {	
-	int WINDOW_WIDTH, WINDOW_HEIGHT;
-	SDL_GetWindowSize(window, &WINDOW_WIDTH, &WINDOW_HEIGHT);
+	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	 * Get the window bounds. Set the buffer to blend mode. Get the frames per second.
+	 */
+
+	int window_width, window_height;
+	SDL_GetWindowSize(window, &window_width, &window_height);
 	
 	if (SDL_SetTextureBlendMode(buffer, SDL_BLENDMODE_BLEND) != 0 || SDL_SetTextureAlphaMod(buffer, 75) != 0)
 	{
@@ -550,10 +624,15 @@ int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 		return -2;
 	}
 
+	lua_getglobal(L, "frames_per_second");
+	int frames_per_second = (int) lua_tonumber(L, -1);
+	lua_pop(L, 1);
+
+
 	// main loop
-	int returnCode = 0;
-	bool isRunning = true;
-	while (isRunning)
+	int return_code = 0;
+	bool is_running = true;
+	while (is_running)
 	{
 		SDL_Event event;
 
@@ -561,36 +640,36 @@ int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 		if (SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0) != 0 || SDL_RenderClear(renderer) != 0)
 		{
 			PrintError();
-			returnCode = -2;
+			return_code = -2;
 			break;
 		}
 		
 		// set the earliest time the next frame occurs
-		Uint64 nextFrameTime = SDL_GetTicks64() + (1000 / 60);
+		Uint64 next_frame_time = SDL_GetTicks64() + (1000 / frames_per_second);
 		
 		// poll events
 		while (SDL_PollEvent(&event))
 		{
 			if (SDL_QUIT == event.type) // if quit, stop event poll and exit main loop
 			{
-				returnCode = -1;
+				return_code = -1;
 				break;
 			}
 			else if (SDL_KEYDOWN == event.type) // if key pressed down, handle it!
 			{
-				SDL_Keycode pressedKey = event.key.keysym.sym;
+				SDL_Keycode pressed_key = event.key.keysym.sym;
 
 				// log the name of pressed key
-				SDL_Log("%s", SDL_GetKeyName(pressedKey));
+				SDL_Log("%s", SDL_GetKeyName(pressed_key));
 
-				if (pressedKey == SDLK_ESCAPE)
+				if (pressed_key == SDLK_ESCAPE)
 				{
-					isRunning = false;
+					is_running = false;
 				}
 			}
 		}
 
-		if (returnCode != 0)
+		if (return_code != 0)
 		{
 			break;
 		}
@@ -599,22 +678,22 @@ int Pause(SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *buffer)
 		if (SDL_SetRenderTarget(renderer, buffer) != 0 || SDL_SetRenderTarget(renderer, NULL) != 0 || SDL_RenderCopy(renderer, buffer, NULL, NULL))
 		{
 			PrintError();
-			returnCode = -2;
+			return_code = -2;
 			break;
 		}
 				
 		// wait and present next frame
-		while (SDL_GetTicks64() < nextFrameTime);
+		while (SDL_GetTicks64() < next_frame_time);
 		SDL_RenderPresent(renderer);
 	}
 
 	if (SDL_SetTextureBlendMode(buffer, SDL_BLENDMODE_NONE) != 0 || SDL_SetTextureAlphaMod(buffer, 0xFF) != 0 || SDL_SetRenderTarget(renderer, NULL) != 0)
 	{
 		PrintError();
-		returnCode = -2;
+		return_code = -2;
 	}
 	
-	SDL_Log("%d", returnCode);
+	SDL_Log("%d", return_code);
 
-	return returnCode;
+	return return_code;
 }
