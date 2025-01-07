@@ -2,7 +2,7 @@
  * @file
  * @author Danielle Raine
  * @date Created June 6th, 2024
- * @date Last Modified December 23rd, 2024
+ * @date Last Modified December 23rd, 2025
  * @brief ManySnakes by Danielle Raine
  */
 
@@ -45,7 +45,7 @@ int main(void)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Create the Lua state for reading scripts.
+	 * Create the Lua state for reading Lua scripts.
 	 */
 
 	lua_State *L = luaL_newstate();
