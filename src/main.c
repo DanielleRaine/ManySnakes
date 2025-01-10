@@ -2,23 +2,24 @@
  * @file
  * @author Danielle Raine
  * @date Created June 6th, 2024
- * @date Last Modified December 23rd, 2025
+ * @date Last Modified January 7th, 2025
  * @brief ManySnakes by Danielle Raine
  */
 
-#include "version.h"
-#include "math.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
-#include "snake.h"
-#include "texture.h"
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include "version.h"
+#include "snake.h"
+#include "texture.h"
+#include "resource.h"
+
 
 void PrintGameInfo();
 void PrintError();
@@ -26,13 +27,14 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L);
 int Play(SDL_Window *window, SDL_Renderer *renderer, lua_State *L);
 int Pause(SDL_Window *window, SDL_Renderer *renderer, lua_State *L, SDL_Texture *buffer);
 
+
 int main(void)
 {
 	PrintGameInfo();
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	 * Initialize SDL, IMG, and TTF.
+	 * Initialize SDL, IMG, and TTF. Register their respective quit functions at exit.
 	 */
 
 	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_VIDEO) != 0 || TTF_Init() != 0)
@@ -41,7 +43,11 @@ int main(void)
 		return 1;
 	}
 
+	atexit(SDL_Quit);
+	atexit(TTF_Quit);
+
 	IMG_Init(IMG_INIT_PNG);
+	atexit(IMG_Quit);
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -52,9 +58,6 @@ int main(void)
 	if (!L)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to create Lua State (main)");
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
 		return 1;
 	}
 
@@ -69,9 +72,6 @@ int main(void)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Cannot run configuration file %s (main)", lua_tostring(L, -1));
 		lua_close(L);
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
 		return 1;
 	}
 
@@ -80,9 +80,6 @@ int main(void)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'window_width' should be a number (main)");
 		lua_close(L);
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
 		return 1;
 	}
 	
@@ -91,9 +88,6 @@ int main(void)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'window_height' should be a number (main)");
 		lua_close(L);
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
 		return 1;
 	}
 
@@ -113,9 +107,6 @@ int main(void)
 	{
 		PrintError();
 		lua_close(L);
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
 		return 1;
 	}
 
@@ -125,9 +116,6 @@ int main(void)
 		PrintError();
 		SDL_DestroyWindow(window);
 		lua_close(L);
-		IMG_Quit();
-		TTF_Quit();
-		SDL_Quit();
 		return 1;
 	}
 
@@ -151,10 +139,6 @@ int main(void)
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
-
-	IMG_Quit();
-	TTF_Quit();
-	SDL_Quit();
 
 	return return_code;
 }
@@ -329,7 +313,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 				if (SDLK_RETURN == key)
 				{
 					return_code = Play(window, renderer, L);
-					SDL_Log("Exit Play: %d", return_code);
+					SDL_Log("Exit Play (%d)", return_code);
 					if (return_code != 0)
 						break;
 				}
