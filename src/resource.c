@@ -33,17 +33,17 @@ ResourceManager *InitializeResourceManager(unsigned int initial_size, double max
 	return manager;
 }
 
-bool SetResource(ResourceManager *manager, const char* key, void *resource)
+// FIXME make sure that this is correct
+bool SetResource(ResourceManager *manager, const char* key, void *resource, void (*destroy_function)(void*))
 {
-	// get the hash of the key and compute its index
-	int index = manager->hash_function(key) % manager->size;
-
 	// create a Resource node
 	Resource *node = malloc(sizeof(Resource));
 	if (!node)
 	{
 		return false;
 	}
+
+	//node->next = NULL;
 
 	++manager->num_resources;
 	if (!RehashResourceManager(manager)) // manager needed to be rehashed but failed
@@ -53,10 +53,35 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource)
 		return false;
 	}
 	
+	// get the hash of the key and compute its index
+	int index = manager->hash_function(key) % manager->size;
+
 	node->resource = resource;
 	strcpy(node->key, key);
-	node->next = manager->resources[index];
-	manager->resources[index] = node;
+
+	Resource *cur = manager->resources[index];
+	if (cur && strcmp(key, cur->key) >= 0)
+	{
+		while (cur->next && strcmp(key, cur->next->key) > 0)
+		{
+			cur = cur->next;
+		}
+
+		if (!cur->next || strcmp(key, cur->next->key) < 0)
+		{
+			node->next = cur->next;
+			cur->next = node;
+		}
+		else
+		{
+			// FIXME overwrite the item at this index
+		}
+	}
+	else
+	{
+		node->next = manager->resources[index];
+		manager->resources[index] = node;
+	}
 
 	return true;
 }
