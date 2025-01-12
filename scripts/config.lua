@@ -1,8 +1,10 @@
--- configuration file for ManySnakes
+Config = -- configuration file for ManySnakes
+{
+	WindowDimensions = -- dimensions of the game window
+	{
+		Width = 1920,
+		Height = 1080
+	},
 
--- define window size
-window_width = 1920
-window_height = 1080
-
--- define frames per second
-frames_per_second = 60
+	FramesPerSecond = 60,
+}

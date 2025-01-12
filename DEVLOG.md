@@ -1,5 +1,15 @@
 # Developer Log
 
+## Log #2: Sunday, January 12th, 2025
+
+I finally figured out how to use SDL through Lua (I forgot to mention that the game is written in C)! I have not implemented my solution yet, however. I found it by reading through [Programming in Lua](https://www.lua.org/pil/) in section 27.3.1! I will use the registry that it describes to have a way to access the SDL renderer to render things!  
+
+I am finishing this part of the log after my coding session for the day (the first part was before) and I found a much easier way to render textures that I choose through Lua (store their filepaths in a table, loop through all of the filepaths and load each one or something like that). I will implement that later!  
+
+Thank you once again for reading my log, and have a great day!~
+
+Danielle ♡
+
 ## Log #1: Friday, January 10th, 2025
 
 I have decided to create a developer log to write down my thoughts as ManySnakes grows in size!  

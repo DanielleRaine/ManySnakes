@@ -1,6 +1,10 @@
 #include "resource.h"
 
 
+static Resource *GetResourceNode(ResourceManager *manager, const char *key);
+static bool RehashResourceManager(ResourceManager *manager);
+
+
 int CustomHash(const char *key)
 {
 	int length = strlen(key);
@@ -14,7 +18,7 @@ int CustomHash(const char *key)
 	return sum;
 }
 
-ResourceManager *InitializeResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor_mult, int (*hash_function)(const char*))
+ResourceManager *CreateResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor_mult, int (*hash_function)(const char*))
 {
 	// create the resource manager
 	ResourceManager *manager = calloc(initial_size, sizeof(ResourceManager));
@@ -33,7 +37,6 @@ ResourceManager *InitializeResourceManager(unsigned int initial_size, double max
 	return manager;
 }
 
-// FIXME make sure that this is correct
 bool SetResource(ResourceManager *manager, const char* key, void *resource, void (*destroy_function)(void*))
 {
 	// create a Resource node
@@ -43,8 +46,7 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource, void
 		return false;
 	}
 
-	//node->next = NULL;
-
+	// increase Resource count and rehash if needed
 	++manager->num_resources;
 	if (!RehashResourceManager(manager)) // manager needed to be rehashed but failed
 	{
@@ -56,28 +58,30 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource, void
 	// get the hash of the key and compute its index
 	int index = manager->hash_function(key) % manager->size;
 
+	// set the members of the struct
 	node->resource = resource;
 	strcpy(node->key, key);
 
+	// Put the resource at its hash index, sorting it asciibetically with other nodes
 	Resource *cur = manager->resources[index];
-	if (cur && strcmp(key, cur->key) >= 0)
+	if (cur && strcmp(key, cur->key) >= 0) // there is a node at this index, and its key is smaller
 	{
-		while (cur->next && strcmp(key, cur->next->key) > 0)
+		while (cur->next && strcmp(key, cur->next->key) > 0) // loop until there is no next or key bigger
 		{
 			cur = cur->next;
 		}
 
-		if (!cur->next || strcmp(key, cur->next->key) < 0)
+		if (!cur->next || strcmp(key, cur->next->key) < 0) // no next node or key bigger, insert node
 		{
 			node->next = cur->next;
 			cur->next = node;
 		}
-		else
+		else // key is the same, overwrite node
 		{
 			// FIXME overwrite the item at this index
 		}
 	}
-	else
+	else // there is not a node or if there is one its key is bigger
 	{
 		node->next = manager->resources[index];
 		manager->resources[index] = node;
@@ -86,7 +90,7 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource, void
 	return true;
 }
 
-void *GetResource(ResourceManager *manager, const char *key)
+ Resource *GetResourceNode(ResourceManager *manager, const char *key)
 {
 	// get the hash of the key and compute its index
 	int index = manager->hash_function(key);
@@ -96,13 +100,21 @@ void *GetResource(ResourceManager *manager, const char *key)
 	{
 		if (strcmp(key, node->key) == 0)
 		{
-			return node->resource;
+			return node;
 		}
 		
 		node = node->next;
 	}
 
 	return NULL;
+}
+
+
+void *GetResource(ResourceManager *manager, const char *key)
+{
+	Resource *node = GetResourceNode(manager, key);
+
+	return node ? node : NULL;
 }
 
 void *RemoveResource(ResourceManager *manager, const char *key)
@@ -138,7 +150,23 @@ void *RemoveResource(ResourceManager *manager, const char *key)
 	return NULL;
 }
 
-bool RehashResourceManager(ResourceManager *manager)
+//TODO Document the fact that if there is no destruction function, a memory leak will happen.
+void DestroyResource(ResourceManager *manager, const char *key)
+{
+	Resource *node = GetResourceNode(manager, key);
+	if (node && node->destroy_function)
+	{
+		node->destroy_function(node->resource);
+		node->resource = NULL;
+		RemoveResource(manager, key);
+	}
+	else
+	{
+		RemoveResource(manager, key);
+	}
+}
+
+static bool RehashResourceManager(ResourceManager *manager)
 {
 	unsigned int new_size;
 	double new_load_factor = manager->num_resources / manager->size;

@@ -2,7 +2,7 @@
  * @file
  * @author Danielle Raine
  * @date Created January 3rd, 2025
- * @date Last Modified January 3rd, 2025
+ * @date Last Modified January 12th, 2025
  * @brief Brief goes here...
  */
 
@@ -23,7 +23,7 @@ typedef struct Resource
 {
 	void *resource;
 	char key[0x20];
-	void (*destroy_function)(void*)
+	void (*destroy_function)(void*);
 	struct Resource *next;
 } Resource;
 
@@ -46,12 +46,13 @@ typedef struct ResourceManager
 
 int CustomHash(const char* key);
 
-ResourceManager *InitializeResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor_mult, int (*hash_function)(const char*));
+ResourceManager *CreateResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor_mult, int (*hash_function)(const char*));
 bool SetResource(ResourceManager *manager, const char* key, void *resource, void (*destroy_function)(void*));
 void *GetResource(ResourceManager *manager, const char *key);
+//bool RenderResource(ResourceManager *manager, const char *key);
+//bool RenderResources(ResourceManager *manager, const char **keys);
 void *RemoveResource(ResourceManager *manager, const char *key);
 void DestroyResource(ResourceManager *manager, const char *key);
-static bool RehashResourceManager(ResourceManager *manager);
 void DestroyResourceManager(ResourceManager *manager);
 
 
