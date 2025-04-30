@@ -2,7 +2,7 @@
  * @file
  * @author Danielle Raine
  * @date Created June 6th, 2024
- * @date Last Modified January 12th, 2025
+ * @date Last Modified April 30th, 2025
  * @brief ManySnakes by Danielle Raine
  */
 
@@ -75,25 +75,38 @@ int main(void)
 		return 1;
 	}
 
-	lua_getglobal(L, "window_width");
-	if (!lua_isnumber(L, -1))
+
+	if (
+			lua_getglobal(L, "WindowDimensions") == LUA_TNIL
+			|| lua_getfield(L, -1, "Width") == LUA_TNIL
+			|| lua_getfield(L, -2, "Height") == LUA_TNIL
+	   )
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'window_width' should be a number (main)");
-		lua_close(L);
-		return 1;
-	}
-	
-	lua_getglobal(L, "window_height");
-	if (!lua_isnumber(L, -1))
-	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'window_height' should be a number (main)");
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Error in 'WindowDimensions' (main)");
 		lua_close(L);
 		return 1;
 	}
 
+
+	//lua_getglobal(L, "window_width");
+	//if (!lua_isnumber(L, -1))
+	//{
+	//	SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'window_width' should be a number (main)");
+	//	lua_close(L);
+	//	return 1;
+	//}
+	//
+	//lua_getglobal(L, "window_height");
+	//if (!lua_isnumber(L, -1))
+	//{
+	//	SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'window_height' should be a number (main)");
+	//	lua_close(L);
+	//	return 1;
+	//}
+
 	int window_width = (int) lua_tonumber(L, -2);
 	int window_height = (int) lua_tonumber(L, -1);
-	lua_pop(L, 2);
+	lua_pop(L, 3);
 
 	//SDL_Rect display_bounds;
 	//if (SDL_GetDisplayBounds(0, &display_bounds) != 0)
@@ -209,10 +222,11 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 		return -2;
 	}
 
-	lua_getglobal(L, "frames_per_second");
-	if (!lua_isnumber(L, -1))
+	if (
+		lua_getglobal(L, "FramesPerSecond") != LUA_TNUMBER
+	   )
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'frames_per_second' should be a number ()");
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "'frames_per_second' should be a number (main menu)");
 		return -2;
 	}
 
@@ -224,12 +238,12 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 	 * Create the font and main menu textboxes.
 	 */
 
-	//TTF_Font *font = TTF_OpenFont("assets/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf", 50);
-	//if (!font)
-	//{
-	//	PrintError();
-	//	return -2;
-	//}
+	TTF_Font *font = TTF_OpenFont("assets/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf", 50);
+	if (!font)
+	{
+		PrintError();
+		return -2;
+	}
 
 	//// create an array of textboxes
 	//int textboxes_size = 2;
