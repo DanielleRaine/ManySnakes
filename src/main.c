@@ -300,6 +300,9 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 	//play_button.textboxes[2] = CreateTextbox(renderer, &box, 20, &font_color, &box_color, font, &border_color, "Play!");
 
 	//play_button.button = CreateTextbutton(&box, play_button.textboxes[0], play_button.textboxes[1], play_button.textboxes[2]);
+	
+
+	GetTextureResource(manager,)
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

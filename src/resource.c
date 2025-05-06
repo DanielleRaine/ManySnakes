@@ -114,7 +114,7 @@ void *GetResource(ResourceManager *manager, const char *key)
 {
 	Resource *node = GetResourceNode(manager, key);
 
-	return node ? node : NULL;
+	return node ? node->resource : NULL;
 }
 
 void *RemoveResource(ResourceManager *manager, const char *key)
@@ -171,7 +171,7 @@ static bool RehashResourceManager(ResourceManager *manager)
 	unsigned int new_size;
 	double new_load_factor = manager->num_resources / manager->size;
 	if (new_load_factor >= manager->max_load_factor)
-	{
+/	{
 		new_size = manager->size << 1;
 	}
 	else if (new_load_factor <= manager->max_load_factor * manager->min_load_factor_mult)
@@ -227,4 +227,25 @@ void DestroyResourceManager(ResourceManager *manager)
 	}
 
 	free(manager);
+}
+
+Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer, const SDL_Rect *bounds, const char *path)
+{
+	Texture *texture = (Texture) GetResource(manager, path);
+
+	if (!texture)
+	{
+		texture = CreateTexture(renderer, bounds, path);
+		if (!SetResource(manager, path, void*(texture)))
+		{
+			return NULL;
+		}
+
+	}
+	else if (bounds)
+	{
+		texture->bounds = bounds;
+	}
+
+	return texture;
 }
