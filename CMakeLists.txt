@@ -26,7 +26,9 @@ add_executable("${CMAKE_PROJECT_NAME}"
 	src/main.c
 	src/snake.c
 	src/texture.c
-	src/resource.c)
+	src/resource.c
+	# src/ui.c
+	)
 
 target_include_directories(ManySnakes PRIVATE "${PROJECT_BINARY_DIR}" "${LUA_INCLUDE_DIR}")
 

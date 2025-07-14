@@ -16,6 +16,13 @@
 #include "texture.h"
 
 
+//TODO Add comments
+typedef enum
+{
+	USERDEF_RESOURCE = 0,
+	TEXTURE_RESOURCE = 1
+} ResourceType;
+
 /**
  * @brief Brief description goes here.
  *
@@ -24,8 +31,9 @@
 typedef struct Resource
 {
 	void *resource;
-	char *key;
+	char key[0x100];
 	struct Resource *next;
+	ResourceType type;
 } Resource;
 
 /**
@@ -37,26 +45,27 @@ typedef struct ResourceManager
 {
 	 Resource **resources;
 	 int num_resources;
+	 int num_references;
 	 unsigned int size;
 	 double load_factor;
 	 double max_load_factor;
-	 double min_load_factor_mult;
+	 double min_load_factor;
 	 int (*hash_function)(const char*);
 } ResourceManager;
 
 
 int CustomHash(const char* key);
 
-ResourceManager *CreateResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor_mult, int (*hash_function)(const char*));
-bool SetResource(ResourceManager *manager, const char* key, void *resource);
+ResourceManager *CreateResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor, int (*hash_function)(const char*));
+bool SetResource(ResourceManager *manager, const char* key, void *resource, ResourceType type);
 void *GetResource(ResourceManager *manager, const char *key);
 //bool RenderResource(ResourceManager *manager, const char *key);
 //bool RenderResources(ResourceManager *manager, const char **keys);
-void *RemoveResource(ResourceManager *manager, const char *key);
+//void *RemoveResource(ResourceManager *manager, const char *key);
 void DestroyResource(ResourceManager *manager, const char *key);
 void DestroyResourceManager(ResourceManager *manager);
 
-Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer, const SDL_Rect *bounds, const char *path)
+Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer, const SDL_Rect *bounds, const char *path);
 
 
 #endif

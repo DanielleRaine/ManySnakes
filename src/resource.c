@@ -18,31 +18,42 @@ int CustomHash(const char *key)
 	return sum;
 }
 
-ResourceManager *CreateResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor_mult, int (*hash_function)(const char*))
+ResourceManager *CreateResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor, int (*hash_function)(const char*))
 {
 	// create the resource manager
-	ResourceManager *manager = calloc(initial_size, sizeof(ResourceManager));
+	ResourceManager *manager = malloc(sizeof(ResourceManager));
 	if (!manager)
 	{
 		return NULL;
 	}
 
+	// create the resources array
+	manager->resources = calloc(initial_size, sizeof(Resource));
+	if (!manager->resources)
+	{
+		free(manager);
+		return NULL;
+	}
+
 	manager->num_resources = 0;
+	manager->num_references = 0;
 	manager->size = initial_size;
 	manager->load_factor = 0;
 	manager->max_load_factor = max_load_factor;
-	manager->min_load_factor_mult = min_load_factor_mult;
+	manager->min_load_factor = min_load_factor;
 	manager->hash_function = hash_function;
 
 	return manager;
 }
 
-bool SetResource(ResourceManager *manager, const char* key, void *resource, void (*destroy_function)(void*))
+bool SetResource(ResourceManager *manager, const char* key, void *resource, ResourceType type)
 {
+	SDL_Log("Bingus 20");
 	// create a Resource node
 	Resource *node = malloc(sizeof(Resource));
 	if (!node)
 	{
+		SDL_Log("Bingus");
 		return false;
 	}
 
@@ -50,6 +61,7 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource, void
 	++manager->num_resources;
 	if (!RehashResourceManager(manager)) // manager needed to be rehashed but failed
 	{
+		SDL_Log("Bingus 7");
 		--manager->num_resources;
 		free(node);
 		return false;
@@ -61,6 +73,7 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource, void
 	// set the members of the struct
 	node->resource = resource;
 	strcpy(node->key, key);
+	node->type = type;
 
 	// Put the resource at its hash index, sorting it asciibetically with other nodes
 	Resource *cur = manager->resources[index];
@@ -90,7 +103,7 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource, void
 	return true;
 }
 
- Resource *GetResourceNode(ResourceManager *manager, const char *key)
+Resource *GetResourceNode(ResourceManager *manager, const char *key)
 {
 	// get the hash of the key and compute its index
 	int index = manager->hash_function(key);
@@ -151,30 +164,30 @@ void *RemoveResource(ResourceManager *manager, const char *key)
 }
 
 //TODO Document the fact that if there is no destruction function, a memory leak will happen.
-void DestroyResource(ResourceManager *manager, const char *key)
-{
-	Resource *node = GetResourceNode(manager, key);
-	if (node && node->destroy_function)
-	{
-		node->destroy_function(node->resource);
-		node->resource = NULL;
-		RemoveResource(manager, key);
-	}
-	else
-	{
-		RemoveResource(manager, key);
-	}
-}
+//void DestroyResource(ResourceManager *manager, const char *key)
+//{
+//	Resource *node = GetResourceNode(manager, key);
+//	if (node && node->destroy_function)
+//	{
+//		node->destroy_function(node->resource);
+//		node->resource = NULL;
+//		RemoveResource(manager, key);
+//	}
+//	else
+//	{
+//		RemoveResource(manager, key);
+//	}
+//}
 
 static bool RehashResourceManager(ResourceManager *manager)
 {
 	unsigned int new_size;
 	double new_load_factor = manager->num_resources / manager->size;
 	if (new_load_factor >= manager->max_load_factor)
-/	{
+	{
 		new_size = manager->size << 1;
 	}
-	else if (new_load_factor <= manager->max_load_factor * manager->min_load_factor_mult)
+	else if (new_load_factor <= manager->min_load_factor)
 	{
 		new_size = manager->size >> 1;
 	}
@@ -231,15 +244,20 @@ void DestroyResourceManager(ResourceManager *manager)
 
 Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer, const SDL_Rect *bounds, const char *path)
 {
-	Texture *texture = (Texture) GetResource(manager, path);
+	Texture *texture = GetResource(manager, path);
+
+	SDL_Log("AA");
 
 	if (!texture)
 	{
+		SDL_Log("Bingus 4");
 		texture = CreateTexture(renderer, bounds, path);
-		if (!SetResource(manager, path, void*(texture)))
+		if (!SetResource(manager, path, texture, TEXTURE_RESOURCE))
 		{
+			SDL_Log("Bingus 9");
 			return NULL;
 		}
+		SDL_Log("Bingus 2");
 
 	}
 	else if (bounds)

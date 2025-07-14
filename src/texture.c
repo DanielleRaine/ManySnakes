@@ -33,6 +33,8 @@ Texture *CreateTexture(SDL_Renderer *renderer, const SDL_Rect *bounds, const cha
 
 			return NULL;
 		}
+
+		*texture->bounds = *bounds;
 	}
 	else
 	{	
