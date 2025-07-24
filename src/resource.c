@@ -36,7 +36,6 @@ ResourceManager *CreateResourceManager(unsigned int initial_size, double max_loa
 	}
 
 	manager->num_resources = 0;
-	manager->num_references = 0;
 	manager->size = initial_size;
 	manager->load_factor = 0;
 	manager->max_load_factor = max_load_factor;
@@ -128,6 +127,28 @@ void *GetResource(ResourceManager *manager, const char *key)
 	Resource *node = GetResourceNode(manager, key);
 
 	return node ? node->resource : NULL;
+}
+
+SDL_Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer, const char *filepath)
+{
+	SDL_Texture *texture = GetResource(manager, filepath);
+
+	SDL_Log("AA");
+
+	if (!texture)
+	{
+		SDL_Log("Bingus 4");
+		texture = IMG_LoadTexture(renderer, filepath);
+		if (!SetResource(manager, filepath, texture, TEXTURE_RESOURCE))
+		{
+			SDL_Log("Bingus 9");
+			return NULL;
+		}
+		SDL_Log("Bingus 2");
+
+	}
+
+	return texture;
 }
 
 void *RemoveResource(ResourceManager *manager, const char *key)
@@ -242,28 +263,4 @@ void DestroyResourceManager(ResourceManager *manager)
 	free(manager);
 }
 
-Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer, const SDL_Rect *bounds, const char *path)
-{
-	Texture *texture = GetResource(manager, path);
 
-	SDL_Log("AA");
-
-	if (!texture)
-	{
-		SDL_Log("Bingus 4");
-		texture = CreateTexture(renderer, bounds, path);
-		if (!SetResource(manager, path, texture, TEXTURE_RESOURCE))
-		{
-			SDL_Log("Bingus 9");
-			return NULL;
-		}
-		SDL_Log("Bingus 2");
-
-	}
-	else if (bounds)
-	{
-		texture->bounds = bounds;
-	}
-
-	return texture;
-}

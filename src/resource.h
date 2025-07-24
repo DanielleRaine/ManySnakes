@@ -13,7 +13,9 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
-#include "texture.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 
 
 //TODO Add comments
@@ -45,7 +47,6 @@ typedef struct ResourceManager
 {
 	 Resource **resources;
 	 int num_resources;
-	 int num_references;
 	 unsigned int size;
 	 double load_factor;
 	 double max_load_factor;
@@ -58,14 +59,18 @@ int CustomHash(const char* key);
 
 ResourceManager *CreateResourceManager(unsigned int initial_size, double max_load_factor, double min_load_factor, int (*hash_function)(const char*));
 bool SetResource(ResourceManager *manager, const char* key, void *resource, ResourceType type);
+
 void *GetResource(ResourceManager *manager, const char *key);
-//bool RenderResource(ResourceManager *manager, const char *key);
-//bool RenderResources(ResourceManager *manager, const char **keys);
-//void *RemoveResource(ResourceManager *manager, const char *key);
-void DestroyResource(ResourceManager *manager, const char *key);
+SDL_Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer, const char *path);
+
+// bool RenderResource(ResourceManager *manager, const char *key);
+// bool RenderResources(ResourceManager *manager, const char **keys);
+
+void *RemoveResource(ResourceManager *manager, const char *key);
+
+// void DestroyResource(ResourceManager *manager, const char *key);
 void DestroyResourceManager(ResourceManager *manager);
 
-Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer, const SDL_Rect *bounds, const char *path);
 
 
 #endif

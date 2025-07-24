@@ -22,17 +22,18 @@ file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}")
 
+add_library(ManySnakesTextures SHARED src/texture.c)
+target_include_directories(ManySnakesTextures PRIVATE "${PROJECT_BINARY_DIR}" "${LUA_INCLUDE_DIR}")
+
 add_executable("${CMAKE_PROJECT_NAME}"
 	src/main.c
 	src/snake.c
-	src/texture.c
+	# src/texture.c
 	src/resource.c
 	# src/ui.c
-	)
-
+)
 target_include_directories(ManySnakes PRIVATE "${PROJECT_BINARY_DIR}" "${LUA_INCLUDE_DIR}")
-
-target_link_libraries(ManySnakes SDL2::SDL2 SDL2_image::SDL2_image SDL2_ttf::SDL2_ttf "${LUA_LIBRARIES}")
+target_link_libraries(ManySnakes ManySnakesTextures SDL2::SDL2 SDL2_image::SDL2_image SDL2_ttf::SDL2_ttf "${LUA_LIBRARIES}")
 
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
 	"${PROJECT_SOURCE_DIR}/assets" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}/assets")

@@ -1,5 +1,15 @@
 # Developer Log
 
+## Log #3: Tuesday, January 15th, 2025
+
+I had a long break. I needed it! I am indeed a student, so I had to focus on my classes. Advanced Calculus was hard! What can I say? I also needed a Summer vacation. I think... I got a great idea. I'm still stuck on embedding Lua properly into my game. What I'm gonna do is have a function in each Lua script file that corresponds to a scene. This function will be called by the program. This function will contain what is to be rendered in that scene. Example, in the main menu, this function will have a call to a C function to render the title texture.
+
+We shall see if that works!
+
+Thanks for reading, and have a wonderful day!~
+
+Danielle ♡
+
 ## Log #2: Sunday, January 12th, 2025
 
 I finally figured out how to use SDL through Lua (I forgot to mention that the game is written in C)! I have not implemented my solution yet, however. I found it by reading through [Programming in Lua](https://www.lua.org/pil/) in section 27.3.1! I will use the registry that it describes to have a way to access the SDL renderer to render things!  
