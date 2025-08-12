@@ -1,49 +1,42 @@
-# specify minimum cmake version
-cmake_minimum_required(VERSION 3.7)
-# set project name and options
+cmake_minimum_required(VERSION 3.15...3.31)
+
 project(ManySnakes
-	VERSION 0.0.11.2
-	DESCRIPTION "\"ManySnakes by Danielle Raine.\""
-	HOMEPAGE_URL "\"https://github.com/DanielleRaine/ManySnakes\""
-	LANGUAGES C
-)
+	VERSION 0.0.12.2
+	DESCRIPTION "ManySnakes by Danielle Raine. There are... many snakes."
+	HOMEPAGE_URL "https://github.com/DanielleRaine/ManySnakes"
+	LANGUAGES C)
 
-add_definitions(-DROOT_DIR="${CMAKE_SOURCE_DIR}")
-
-# specify c standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
-# additional warnings
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-# find packages
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(SDL2_ttf REQUIRED)
+find_package(Lua REQUIRED)
 
-# include packages
-include_directories(ManySnakes
-	${SDL2_INCLUDE_DIRS}
-	${SDL2IMAGE_INCLUDE_DIRS}
-	${SDL2TTF_INCLUDE_DIRS}
-)
+configure_file("${CMAKE_SOURCE_DIR}/src/version.h.in" "${CMAKE_BINARY_DIR}/version.h")
 
-# configure project config file
-configure_file(src/config.h.in config.h)
+file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}")
 
-# add executable called ManySnakes build from source files
-add_executable(ManySnakes
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}")
+
+add_library(ManySnakesTextures SHARED src/texture.c)
+target_include_directories(ManySnakesTextures PRIVATE "${PROJECT_BINARY_DIR}" "${LUA_INCLUDE_DIR}")
+
+add_executable("${CMAKE_PROJECT_NAME}"
 	src/main.c
-	src/math.c
 	src/snake.c
-	src/texture.c
+	# src/texture.c
+	src/resource.c
+	# src/ui.c
 )
+target_include_directories(ManySnakes PRIVATE "${PROJECT_BINARY_DIR}" "${LUA_INCLUDE_DIR}")
+target_link_libraries(ManySnakes ManySnakesTextures SDL2::SDL2 SDL2_image::SDL2_image SDL2_ttf::SDL2_ttf "${LUA_LIBRARIES}")
 
-# specify where executable target should look for include files
-target_include_directories(ManySnakes PUBLIC
-	"${PROJECT_BINARY_DIR}"
-)
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+	"${PROJECT_SOURCE_DIR}/assets" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}/assets")
 
-# link libraries
-target_link_libraries(ManySnakes ${SDL2_LIBRARIES} SDL2_image::SDL2_image SDL2_ttf::SDL2_ttf)
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+	"${PROJECT_SOURCE_DIR}/scripts" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}/scripts")

@@ -1,242 +1,162 @@
 #include "texture.h"
 
 
-Texture *CreateTexture(SDL_Renderer *renderer, SDL_Rect *box, const char *imagepath)
+bool RenderTexture(SDL_Renderer *renderer, SDL_Texture *texture, const SDL_Rect *srcrect, const SDL_Rect *dstrect)
 {
-	// Create the struct.
-	Texture *texture = malloc(sizeof(Texture));
-	if (!texture)
+	SDL_Log("hey!!");
+	if (SDL_RenderCopy(renderer, texture, srcrect, dstrect) != 0)
 	{
-		SDL_SetError("Failed to create texture. (Failed to create Texture struct)");
-		return NULL;
-	}
-
-	// Create the texture if imagepath specified.
-	if (imagepath)
-	{
-		texture->texture = IMG_LoadTexture(renderer, imagepath);
-
-		if (!texture->texture)
-		{
-			SDL_SetError("Failed to create texture. (Texture failed to load from imagepath)");
-			free(texture);
-			return NULL;
-		}
-	}
-	else // Otherwise, set to NULL.
-	{
-		texture->texture = NULL;
-	}
-
-	// Set the position of the texture.
-	texture->box = *box;
-
-	return texture;
-}
-
-Textbox *CreateTextbox(SDL_Renderer *renderer, SDL_Rect *box, int borderwidth, SDL_Color *boxcolor, SDL_Color *bordercolor, TTF_Font *font, SDL_Color *fontcolor, const char *text)
-{
-	// Create the struct.
-	Textbox *textbox = malloc(sizeof(Textbox));
-	if (!textbox)
-	{
-		SDL_SetError("Failed to create textbox. (Failed to create Textbox struct)");
-		return NULL;
-	}
-
-	// Create the texture struct.
-	textbox->texture = CreateTexture(renderer, box, NULL);
-	if (!textbox->texture)
-	{
-		SDL_ClearError();
-		SDL_SetError("Failed to create textbox. (Failed to create Texture)");
-		free(textbox);
-		return NULL;
-	}
-
-	// Create the text surface.
-	SDL_Surface *surface = TTF_RenderText_Solid(font, text, *fontcolor);
-	if (!surface)
-	{
-		SDL_SetError("Failed to create textbox. (Failed to create text SDL_Surface)");
-		free(textbox->texture);
-		free(textbox);
-		return NULL;
-	}
-
-	// Create the text texture.
-	textbox->texture->texture = SDL_CreateTextureFromSurface(renderer, surface);
-	// Free the text surface.	
-	SDL_FreeSurface(surface);
-	if (!textbox->texture->texture)
-	{
-		SDL_SetError("Failed to create textbox. (Failed to create text SDL_Texture from SDL_Surface)");
-		free(textbox->texture);
-		free(textbox);
-		return NULL;
-	}
-
-	textbox->texture->box = *box;
-	textbox->borderwidth = borderwidth;
-	textbox->boxcolor = *boxcolor;
-	textbox->bordercolor = *bordercolor;
-	textbox->font = font;
-	textbox->fontcolor = *fontcolor;
-	textbox->text = text;
-	textbox->isUpdated = false;
-
-	return textbox;
-}
-
-bool RenderTexture(SDL_Renderer *renderer, Texture *texture)
-{
-	if (SDL_RenderCopy(renderer, texture->texture, NULL, &texture->box))
-	{
-		SDL_SetError("Failed to render texture. (texture)");
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s (texture.h)", SDL_GetError());
 		return false;
 	}
 
+	SDL_Log("hey!!");
 	return true;
 }
 
-bool RenderTextures(SDL_Renderer *renderer, Texture **textures, int size)
+static int L_RenderTexture(lua_State *L)
 {
-	for (int i = 0; i < size; ++i)
-	{
-		if (!RenderTexture(renderer, textures[i]))
-		{
-			SDL_ClearError();
-			SDL_SetError("Failed to render texture %d. (texture)", i);
-			return false;
-		}
-	}
+	SDL_Log("Bingus");
 
-	return true;
+	lua_getfield(L, LUA_REGISTRYINDEX, "resource_manager");
+	ResourceManager *manager = lua_touserdata(L, -1);
+	lua_pop(L, 1);
+
+	lua_getfield(L, LUA_REGISTRYINDEX, "renderer");
+	SDL_Renderer *renderer = lua_touserdata(L, -1);
+	lua_pop(L, 1);
+
+	//TODO Check if errors!
+	// int filepath_len;
+	
+	lua_getfield(L, 1, "filepath");
+	// const char *filepath = lua_getlstring(L, -1, &filepath_len);
+	const char *filepath = lua_tolstring(L, -1, NULL);
+	lua_pop(L, 1);
+
+	lua_getfield(L, 1, "position");
+	lua_getfield(L, -1, "x");
+	lua_getfield(L, -2, "y");
+
+	int x = (int) lua_tonumber(L, -2);
+	int y = (int) lua_tonumber(L, -1);
+	lua_pop(L, 3);
+	
+	SDL_Log("Bingus 90");
+
+	lua_getfield(L, 1, "dimensions");
+	lua_getfield(L, -1, "width");
+	lua_getfield(L, -2, "height");
+	
+	int width = (int) lua_tonumber(L, -2);
+	int height = (int) lua_tonumber(L, -1);
+	lua_pop(L, 3);
+	
+	const SDL_Rect dstrect = {x, y, width, height};
+	
+	SDL_Texture *texture = GetTextureResource(manager, renderer, filepath);
+
+	SDL_Log("%d", texture == NULL);
+
+	RenderTexture(renderer, texture, NULL, &dstrect);
+
+	return 0;
 }
 
-bool RenderTextbox(SDL_Renderer *renderer, Textbox *textbox)
-{	
-	int borderwidth = textbox->borderwidth;
-	SDL_Color color = textbox->bordercolor;
-	SDL_Rect borderbox = {textbox->texture->box.x - borderwidth, textbox->texture->box.y - borderwidth, textbox->texture->box.w + borderwidth * 2, textbox->texture->box.h + borderwidth * 2};
-
-	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 || SDL_RenderFillRect(renderer, &borderbox) != 0)
-	{
-		SDL_SetError("Failed to render textbox. (Border failed to render)");
-		return false;
-	}
-
-	color = textbox->boxcolor;
-
-	if (SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a) != 0 || SDL_RenderFillRect(renderer, &textbox->texture->box) != 0)
-	{
-		SDL_SetError("Failed to render textbox. (Box failed to render)");
-		return false;
-	}
-
-
-	if (!RenderTexture(renderer, textbox->texture))
-	{
-		SDL_ClearError();
-		SDL_SetError("Failed to render textbox. (Texture failed to render)");
-		return false;
-	}
-
-	return true;
-}
-
-bool RenderTextboxes(SDL_Renderer *renderer, Textbox **textboxes, int size)
+static const struct luaL_Reg ManySnakesTextures [] =
 {
-	for (int i = 0; i < size; ++i)
-	{
-		if (!RenderTextbox(renderer, textboxes[i]))
-		{
-			SDL_ClearError();
-			SDL_SetError("Failed to render textbox %d. (textbox)", i);
-			return false;
-		}
-	}
+	{"RenderTexture", L_RenderTexture},
+	{NULL, NULL}
+};
 
-	return true;
-}
-
-void DestroyTexture(Texture *texture)
+int luaopen_ManySnakesTextures(lua_State *L)
 {
-	SDL_DestroyTexture(texture->texture);
-	free(texture);
+	luaL_newlib(L, ManySnakesTextures);
+	return 1;
 }
 
-void DestroyTextures(Texture **textures, int size)
-{
-	for (int i = 0; i < size; ++i)
-	{
-		DestroyTexture(textures[i]);
-	}
-}
-
-void DestroyTextbox(Textbox *textbox)
-{
-	DestroyTexture(textbox->texture);
-	free(textbox);
-}
-
-void DestroyTextboxes(Textbox **textboxes, int size)
-{
-	for (int i = 0; i < size; ++i)
-	{
-		DestroyTextbox(textboxes[i]);
-	}
-}
-
-Textbutton *CreateTextbutton(SDL_Rect *mouseArea, Textbox *button, Textbox *buttonHighlighted, Textbox *buttonPressed)
-{
-	Textbutton *textbutton = malloc(sizeof(Textbutton));
-	if (!textbutton)
-	{
-		return NULL;
-	}
-
-	textbutton->mouseArea = *mouseArea;
-	textbutton->button = button;
-	textbutton->buttonHighlighted = buttonHighlighted;
-	textbutton->buttonPressed = buttonPressed;
-
-	return textbutton;
-}
-
-bool RenderTextbutton(SDL_Renderer *renderer, Textbutton *textbutton, Uint32 mousestate, int x, int y)
-{
-	SDL_Point cursorPos = {x, y};
-	Textbox *button;
-	if (!SDL_PointInRect(&cursorPos, &textbutton->mouseArea))
-	{
-		button = textbutton->button;
-	}
-	else if (mousestate == SDL_BUTTON_LEFT)
-	{
-		button = textbutton->buttonPressed;
-	}
-	else
-	{
-		button = textbutton->buttonHighlighted;
-	}
-
-	if (!button)
-	{
-		return true;
-	}
-
-	if (!RenderTextbox(renderer, button))
-	{
-		SDL_ClearError();
-		SDL_SetError("Failed to render textbutton. (Textbox failed to render)");
-		return false;
-	}
-
-	return true;
-}
-
-void DestroyTextbutton(Textbutton *textbutton)
-{
-	free(textbutton);
-}
+//Texture *CreateTexture(SDL_Renderer *renderer, const SDL_Rect *bounds, const char *texture_path)
+//{
+//	// Create the struct.
+//	Texture *texture = malloc(sizeof(Texture));
+//	if (!texture)
+//	{
+//		SDL_SetError("Failed to create texture. (malloc texture)");
+//		return NULL;
+//	}
+//
+//	texture->texture = IMG_LoadTexture(renderer, texture_path);
+//	if (!texture->texture)
+//	{
+//		SDL_SetError("Failed to create texture. (Failed to load texture from %s)", texture_path);
+//		free(texture);
+//		return NULL;
+//	}
+//
+//	texture->texture_path = (char*) calloc(strlen(texture_path) + 1, sizeof(char));
+//	strcpy(texture->texture_path, texture_path);
+//
+//	if (bounds)
+//	{
+//		texture->bounds = (SDL_Rect*) malloc(sizeof(SDL_Rect));
+//		if (!texture->bounds)
+//		{
+//			SDL_SetError("Failed to create texture. (malloc bounds)");
+//			SDL_DestroyTexture(texture->texture);
+//			free(texture);
+//
+//			return NULL;
+//		}
+//
+//		*texture->bounds = *bounds;
+//	}
+//	else
+//	{	
+//		texture->bounds = NULL;
+//	}
+//
+//	return texture;
+//}
+//
+//bool RenderTexture(SDL_Renderer *renderer, Texture *texture)
+//{
+//	if (SDL_RenderCopy(renderer, texture->texture, NULL, texture->bounds))
+//	{
+//		SDL_SetError("Failed to render texture. (RenderTexture)");
+//		return false;
+//	}
+//
+//	return true;
+//}
+//
+//bool RenderTextures(SDL_Renderer *renderer, Texture **textures)
+//{
+//	int size = sizeof(textures) / sizeof(Texture);
+//	for (int i = 0; i < size ; ++i)
+//	{
+//		if (!RenderTexture(renderer, textures[i]))
+//		{
+//			SDL_ClearError();
+//			SDL_SetError("Failed to render texture %d. (RenderTextures)", i);
+//			return false;
+//		}
+//	}
+//
+//	return true;
+//}
+//
+//void DestroyTexture(Texture *texture)
+//{
+//	SDL_DestroyTexture(texture->texture);
+//	free(texture->bounds);
+//	free(texture);
+//}
+//
+//void DestroyTextures(Texture **textures)
+//{
+//	int size = sizeof(textures) / sizeof(Texture);
+//	for (int i = 0; i < size; ++i)
+//	{
+//		DestroyTexture(textures[i]);
+//	}
+//}
