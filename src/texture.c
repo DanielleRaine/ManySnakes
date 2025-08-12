@@ -3,12 +3,14 @@
 
 bool RenderTexture(SDL_Renderer *renderer, SDL_Texture *texture, const SDL_Rect *srcrect, const SDL_Rect *dstrect)
 {
+	SDL_Log("hey!!");
 	if (SDL_RenderCopy(renderer, texture, srcrect, dstrect) != 0)
 	{
-		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
+		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s (texture.h)", SDL_GetError());
 		return false;
 	}
 
+	SDL_Log("hey!!");
 	return true;
 }
 
@@ -39,6 +41,8 @@ static int L_RenderTexture(lua_State *L)
 	int x = (int) lua_tonumber(L, -2);
 	int y = (int) lua_tonumber(L, -1);
 	lua_pop(L, 3);
+	
+	SDL_Log("Bingus 90");
 
 	lua_getfield(L, 1, "dimensions");
 	lua_getfield(L, -1, "width");
@@ -47,10 +51,12 @@ static int L_RenderTexture(lua_State *L)
 	int width = (int) lua_tonumber(L, -2);
 	int height = (int) lua_tonumber(L, -1);
 	lua_pop(L, 3);
-
+	
 	const SDL_Rect dstrect = {x, y, width, height};
-
+	
 	SDL_Texture *texture = GetTextureResource(manager, renderer, filepath);
+
+	SDL_Log("%d", texture == NULL);
 
 	RenderTexture(renderer, texture, NULL, &dstrect);
 

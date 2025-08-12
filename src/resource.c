@@ -47,12 +47,10 @@ ResourceManager *CreateResourceManager(unsigned int initial_size, double max_loa
 
 bool SetResource(ResourceManager *manager, const char* key, void *resource, ResourceType type)
 {
-	SDL_Log("Bingus 20");
 	// create a Resource node
 	Resource *node = malloc(sizeof(Resource));
 	if (!node)
 	{
-		SDL_Log("Bingus");
 		return false;
 	}
 
@@ -60,7 +58,6 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource, Reso
 	++manager->num_resources;
 	if (!RehashResourceManager(manager)) // manager needed to be rehashed but failed
 	{
-		SDL_Log("Bingus 7");
 		--manager->num_resources;
 		free(node);
 		return false;
@@ -105,7 +102,7 @@ bool SetResource(ResourceManager *manager, const char* key, void *resource, Reso
 Resource *GetResourceNode(ResourceManager *manager, const char *key)
 {
 	// get the hash of the key and compute its index
-	int index = manager->hash_function(key);
+	int index = manager->hash_function(key) % manager->size;
 
 	Resource *node = manager->resources[index];
 	while (node)
@@ -125,7 +122,6 @@ Resource *GetResourceNode(ResourceManager *manager, const char *key)
 void *GetResource(ResourceManager *manager, const char *key)
 {
 	Resource *node = GetResourceNode(manager, key);
-
 	return node ? node->resource : NULL;
 }
 
@@ -133,19 +129,13 @@ SDL_Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer
 {
 	SDL_Texture *texture = GetResource(manager, filepath);
 
-	SDL_Log("AA");
-
 	if (!texture)
 	{
-		SDL_Log("Bingus 4");
 		texture = IMG_LoadTexture(renderer, filepath);
 		if (!SetResource(manager, filepath, texture, TEXTURE_RESOURCE))
 		{
-			SDL_Log("Bingus 9");
 			return NULL;
 		}
-		SDL_Log("Bingus 2");
-
 	}
 
 	return texture;
@@ -154,7 +144,7 @@ SDL_Texture *GetTextureResource(ResourceManager *manager, SDL_Renderer *renderer
 void *RemoveResource(ResourceManager *manager, const char *key)
 {
 	// get the hash of the key and compute its index
-	int index = manager->hash_function(key);
+	int index = manager->hash_function(key) % manager->size;
 
 	Resource *node = manager->resources[index];
 	void *resource;

@@ -66,6 +66,7 @@ int main(void)
 
 	luaL_openlibs(L);
 	luaL_requiref(L, "ManySnakesTextures", luaopen_ManySnakesTextures, true);
+	lua_pop(L, 1);
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,8 +83,8 @@ int main(void)
 	// Get the display 
 	if (
 		lua_getglobal(L, "window_dimensions") == LUA_TNIL
-		|| lua_getfield(L, -1, "Width") == LUA_TNIL
-		|| lua_getfield(L, -2, "Height") == LUA_TNIL
+		|| lua_getfield(L, -1, "width") == LUA_TNIL
+		|| lua_getfield(L, -2, "height") == LUA_TNIL
 	   )
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Error in 'window_dimensions' (main)");
@@ -257,7 +258,6 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 	if (luaL_dofile(L, "scripts/mainmenu.lua") != 0)
 	{
 		SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Cannot run configuration file %s (mainmenu)", lua_tostring(L, -1));
-		lua_close(L);
 		return 1;
 	}
 	
@@ -371,9 +371,12 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 				}
 				else if (SDLK_F5 == key)
 				{
-
-
-
+					if (luaL_dofile(L, "scripts/mainmenu.lua") != 0)
+					{
+						SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Cannot run configuration file %s (mainmenu)", lua_tostring(L, -1));
+						return_code = -2;
+						break;
+					}
 				}
 			}
 			else if (SDL_MOUSEBUTTONUP == event.type)
@@ -404,20 +407,14 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 				break;
 			}
 
-			SDL_Log("%d", lua_getglobal(L, "RenderMainMenu") == LUA_TNIL);
-			int err = lua_pcall(L, 0, 0, 0);
-			SDL_Log("%d %d %d %d", err = LUA_OK, err == LUA_ERRRUN, err == LUA_ERRMEM, err == LUA_ERRERR);
-			
-//			if (lua_getglobal(L, "RenderMainMenu") == LUA_TNIL || lua_pcall(L, 0, 0, 0) != LUA_OK)
-//			{
-//				//TODO Add error message.
-//				return_code = -2;
-//				break;
-//			}
-//
+			if (lua_getglobal(L, "RenderMainMenu") == LUA_TNIL || lua_pcall(L, 0, 0, 0) != LUA_OK)
+			{
+				//TODO Add error message.
+				return_code = -2;
+				break;
+			}
+
 			// lua_pop(L, 1);
-
-
 
 			//SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
 			

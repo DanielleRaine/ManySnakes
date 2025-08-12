@@ -2,8 +2,8 @@
 
 window_dimensions = -- dimensions of the game window
 {
-	Width = 1920,
-	Height = 1080
+	width = 1920,
+	height = 1080
 }
 
 frames_per_second = 60
