@@ -6,11 +6,22 @@ textures =
 	{
 		filepath = "./assets/textures/title.png",
 		position = {x = 1920 / 2 - 250, y = 1080 / 8},
-		dimensions = {width = 500, height = 300},
+		dimensions = {width = 500, height = 300}
+	}
+}
+
+buttons =
+{
+	classic =
+	{
+		filepaths = {button = "./assets/textures/title.png", hover = "./assets/textures/apple.png", click = "./assets/textures/title.png"},
+		position = {x = 1000, y = 500},
+		dimensions = {width = 200, height = 200},
 	}
 }
 
 function RenderMainMenu()
-	ManySnakesTextures.RenderTexture(textures.title)
+	ManySnakesRender.RenderTexture(textures.title)
+	ManySnakesRender.RenderButton(buttons.classic)
 end
 

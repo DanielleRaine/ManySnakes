@@ -8,8 +8,8 @@
  *
  */
 
-#ifndef TEXTURE_H
-#define TEXTURE_H
+#ifndef RENDER_H
+#define RENDER_H
 
 #include <stdbool.h>
 #include <string.h>
@@ -23,7 +23,7 @@
 
 bool RenderTexture(SDL_Renderer *renderer, SDL_Texture *texture, const SDL_Rect *srcrect, const SDL_Rect *dstrect);
 
-int luaopen_ManySnakesTextures(lua_State *L);
+int luaopen_ManySnakesRender(lua_State *L);
 
 
 #endif

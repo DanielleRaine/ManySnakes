@@ -17,8 +17,8 @@
 #include "lauxlib.h"
 #include "version.h"
 #include "snake.h"
-#include "texture.h"
 #include "resource.h"
+#include "render.h"
 
 
 void PrintGameInfo();
@@ -65,7 +65,7 @@ int main(void)
 	}
 
 	luaL_openlibs(L);
-	luaL_requiref(L, "ManySnakesTextures", luaopen_ManySnakesTextures, true);
+	luaL_requiref(L, "ManySnakesRender", luaopen_ManySnakesRender, true);
 	lua_pop(L, 1);
 
 
@@ -481,7 +481,7 @@ int Play(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 	 */
 
 	// get apple png path
-	char applePNG[128] = "assets/textures/Apple.png";
+	char applePNG[128] = "assets/textures/apple.png";
 
 	// create apple
 	Food *apple = CreateFood(renderer, FOOD_APPLE, 0, 0, 20, 20, applePNG);

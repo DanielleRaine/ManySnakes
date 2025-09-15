@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15...3.31)
 
 project(ManySnakes
-	VERSION 0.0.12.2
+	VERSION 0.0.13.2
 	DESCRIPTION "ManySnakes by Danielle Raine. There are... many snakes."
 	HOMEPAGE_URL "https://github.com/DanielleRaine/ManySnakes"
 	LANGUAGES C)
@@ -22,18 +22,17 @@ file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}")
 
-add_library(ManySnakesTextures SHARED src/texture.c)
-target_include_directories(ManySnakesTextures PRIVATE "${PROJECT_BINARY_DIR}" "${LUA_INCLUDE_DIR}")
+add_library(ManySnakesRender SHARED src/render.c)
+target_include_directories(ManySnakesRender PRIVATE "${PROJECT_BINARY_DIR}" "${LUA_INCLUDE_DIR}")
 
 add_executable("${CMAKE_PROJECT_NAME}"
 	src/main.c
 	src/snake.c
-	# src/texture.c
 	src/resource.c
-	# src/ui.c
+	#src/render.c
 )
 target_include_directories(ManySnakes PRIVATE "${PROJECT_BINARY_DIR}" "${LUA_INCLUDE_DIR}")
-target_link_libraries(ManySnakes ManySnakesTextures SDL2::SDL2 SDL2_image::SDL2_image SDL2_ttf::SDL2_ttf "${LUA_LIBRARIES}")
+target_link_libraries(ManySnakes ManySnakesRender SDL2::SDL2 SDL2_image::SDL2_image SDL2_ttf::SDL2_ttf "${LUA_LIBRARIES}")
 
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
 	"${PROJECT_SOURCE_DIR}/assets" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}/assets")
