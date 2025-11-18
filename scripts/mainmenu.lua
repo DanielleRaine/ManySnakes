@@ -25,3 +25,9 @@ function RenderMainMenu()
 	ManySnakesRender.RenderButton(buttons.classic)
 end
 
+function PointInBounds(point, bounds)
+	return bounds.x <= point.x && point.x <= bounds.x + bounds.w && bounds.y <= point.y && point.y <= bounds.y + bounds.h
+end
+
+function MouseButtonUpMainMenu(x, y)
+	PointInBounds(buttons.classic.

@@ -248,7 +248,7 @@ int MainMenu(SDL_Window *window, SDL_Renderer *renderer, lua_State *L)
 	int frames_per_second = (int) lua_tonumber(L, -1);
 	lua_pop(L, 1);
 
-	SDL_Log("Bingusss");
+	// SDL_Log("Bingusss");
 
 
 	/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
